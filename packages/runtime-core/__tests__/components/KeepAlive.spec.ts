@@ -1,38 +1,37 @@
 import {
-  type Component,
-  type ComponentOptions,
-  type ComponentPublicInstance,
-  KeepAlive,
-  type Ref,
-  type TestElement,
-  cloneVNode,
-  createApp,
-  defineAsyncComponent,
-  defineComponent,
   h,
-  inject,
-  markRaw,
-  nextTick,
+  TestElement,
   nodeOps,
-  onActivated,
-  onDeactivated,
-  onMounted,
-  onUnmounted,
-  provide,
-  reactive,
-  ref,
   render,
+  ref,
+  KeepAlive,
   serializeInner,
+  nextTick,
+  ComponentOptions,
+  markRaw,
+  inject,
+  defineComponent,
+  ComponentPublicInstance,
+  Ref,
+  cloneVNode,
+  provide,
+  defineAsyncComponent,
+  Component,
+  createApp,
+  onActivated,
+  onUnmounted,
+  onMounted,
+  reactive,
   shallowRef,
+  onDeactivated
 } from '@vue/runtime-test'
-import type { KeepAliveProps } from '../../src/components/KeepAlive'
+import { KeepAliveProps } from '../../src/components/KeepAlive'
 
 const timeout = (n: number = 0) => new Promise(r => setTimeout(r, n))
 
 describe('KeepAlive', () => {
   let one: ComponentOptions
   let two: ComponentOptions
-  let oneTest: ComponentOptions
   let views: Record<string, ComponentOptions>
   let root: TestElement
 
@@ -44,23 +43,11 @@ describe('KeepAlive', () => {
       render(this: any) {
         return h('div', this.msg)
       },
-      created: vi.fn(),
-      mounted: vi.fn(),
-      activated: vi.fn(),
-      deactivated: vi.fn(),
-      unmounted: vi.fn(),
-    }
-    oneTest = {
-      name: 'oneTest',
-      data: () => ({ msg: 'oneTest' }),
-      render(this: any) {
-        return h('div', this.msg)
-      },
-      created: vi.fn(),
-      mounted: vi.fn(),
-      activated: vi.fn(),
-      deactivated: vi.fn(),
-      unmounted: vi.fn(),
+      created: jest.fn(),
+      mounted: jest.fn(),
+      activated: jest.fn(),
+      deactivated: jest.fn(),
+      unmounted: jest.fn()
     }
     two = {
       name: 'two',
@@ -68,16 +55,15 @@ describe('KeepAlive', () => {
       render(this: any) {
         return h('div', this.msg)
       },
-      created: vi.fn(),
-      mounted: vi.fn(),
-      activated: vi.fn(),
-      deactivated: vi.fn(),
-      unmounted: vi.fn(),
+      created: jest.fn(),
+      mounted: jest.fn(),
+      activated: jest.fn(),
+      deactivated: jest.fn(),
+      unmounted: jest.fn()
     }
     views = {
       one,
-      oneTest,
-      two,
+      two
     }
   })
 
@@ -87,7 +73,7 @@ describe('KeepAlive', () => {
       component.mounted.mock.calls.length,
       component.activated.mock.calls.length,
       component.deactivated.mock.calls.length,
-      component.unmounted.mock.calls.length,
+      component.unmounted.mock.calls.length
     ]).toEqual(callCounts)
   }
 
@@ -97,9 +83,9 @@ describe('KeepAlive', () => {
     const App = {
       render() {
         return h(KeepAlive, null, {
-          default: () => h(views[viewRef.value], { ref: instanceRef }),
+          default: () => h(views[viewRef.value], { ref: instanceRef })
         })
-      },
+      }
     }
     render(h(App), root)
     expect(serializeInner(root)).toBe(`<div>one</div>`)
@@ -120,7 +106,7 @@ describe('KeepAlive', () => {
     const App = {
       render() {
         return toggle.value ? h(KeepAlive, () => h(views[viewRef.value])) : null
-      },
+      }
     }
     render(h(App), root)
 
@@ -161,7 +147,7 @@ describe('KeepAlive', () => {
     const App = {
       render() {
         return toggle.value ? h(KeepAlive, () => h(views[viewRef.value])) : null
-      },
+      }
     }
     render(h(App), root)
 
@@ -204,7 +190,7 @@ describe('KeepAlive', () => {
     const App = {
       render() {
         return h(KeepAlive, () => (toggle.value ? h(one) : null))
-      },
+      }
     }
     render(h(App), root)
 
@@ -239,21 +225,21 @@ describe('KeepAlive', () => {
       render(this: any) {
         return h('div', this.msg)
       },
-      activated: vi.fn(),
+      activated: jest.fn()
     }
     const one = {
       name: 'one',
       data: () => ({ msg: 'one' }),
       render(this: any) {
         return h(two)
-      },
+      }
     }
 
     const toggle = ref(true)
     const App = {
       render() {
         return h(KeepAlive, () => (toggle.value ? h(one) : null))
-      },
+      }
     }
     render(h(App), root)
 
@@ -269,7 +255,7 @@ describe('KeepAlive', () => {
     const App = {
       render() {
         return h(KeepAlive, () => (toggle1.value ? h(one) : null))
-      },
+      }
     }
     render(h(App), root)
 
@@ -349,7 +335,7 @@ describe('KeepAlive', () => {
         return outerRef.value
           ? h(KeepAlive, props, () => h(views[viewRef.value]))
           : null
-      },
+      }
     }
     render(h(App), root)
 
@@ -381,128 +367,6 @@ describe('KeepAlive', () => {
     expect(serializeInner(root)).toBe(`<!---->`)
     assertHookCalls(one, [1, 1, 2, 2, 1])
     assertHookCalls(two, [2, 2, 0, 0, 2])
-  }
-
-  async function assertNameMatchWithFlag(props: KeepAliveProps) {
-    const outerRef = ref(true)
-    const viewRef = ref('one')
-    const App = {
-      render() {
-        return outerRef.value
-          ? h(KeepAlive, props, () => h(views[viewRef.value]))
-          : null
-      },
-    }
-    render(h(App), root)
-
-    expect(serializeInner(root)).toBe(`<div>one</div>`)
-    assertHookCalls(one, [1, 1, 1, 0, 0])
-    assertHookCalls(oneTest, [0, 0, 0, 0, 0])
-    assertHookCalls(two, [0, 0, 0, 0, 0])
-
-    viewRef.value = 'oneTest'
-    await nextTick()
-    expect(serializeInner(root)).toBe(`<div>oneTest</div>`)
-    assertHookCalls(one, [1, 1, 1, 1, 0])
-    assertHookCalls(oneTest, [1, 1, 1, 0, 0])
-    assertHookCalls(two, [0, 0, 0, 0, 0])
-
-    viewRef.value = 'two'
-    await nextTick()
-    expect(serializeInner(root)).toBe(`<div>two</div>`)
-    assertHookCalls(one, [1, 1, 1, 1, 0])
-    assertHookCalls(oneTest, [1, 1, 1, 1, 0])
-    assertHookCalls(two, [1, 1, 0, 0, 0])
-
-    viewRef.value = 'one'
-    await nextTick()
-    expect(serializeInner(root)).toBe(`<div>one</div>`)
-    assertHookCalls(one, [1, 1, 2, 1, 0])
-    assertHookCalls(oneTest, [1, 1, 1, 1, 0])
-    assertHookCalls(two, [1, 1, 0, 0, 1])
-
-    viewRef.value = 'oneTest'
-    await nextTick()
-    expect(serializeInner(root)).toBe(`<div>oneTest</div>`)
-    assertHookCalls(one, [1, 1, 2, 2, 0])
-    assertHookCalls(oneTest, [1, 1, 2, 1, 0])
-    assertHookCalls(two, [1, 1, 0, 0, 1])
-
-    viewRef.value = 'two'
-    await nextTick()
-    expect(serializeInner(root)).toBe(`<div>two</div>`)
-    assertHookCalls(one, [1, 1, 2, 2, 0])
-    assertHookCalls(oneTest, [1, 1, 2, 2, 0])
-    assertHookCalls(two, [2, 2, 0, 0, 1])
-
-    // teardown
-    outerRef.value = false
-    await nextTick()
-    expect(serializeInner(root)).toBe(`<!---->`)
-    assertHookCalls(one, [1, 1, 2, 2, 1])
-    assertHookCalls(oneTest, [1, 1, 2, 2, 1])
-    assertHookCalls(two, [2, 2, 0, 0, 2])
-  }
-
-  async function assertNameMatchWithFlagExclude(props: KeepAliveProps) {
-    const outerRef = ref(true)
-    const viewRef = ref('one')
-    const App = {
-      render() {
-        return outerRef.value
-          ? h(KeepAlive, props, () => h(views[viewRef.value]))
-          : null
-      },
-    }
-    render(h(App), root)
-
-    expect(serializeInner(root)).toBe(`<div>one</div>`)
-    assertHookCalls(one, [1, 1, 0, 0, 0])
-    assertHookCalls(oneTest, [0, 0, 0, 0, 0])
-    assertHookCalls(two, [0, 0, 0, 0, 0])
-
-    viewRef.value = 'oneTest'
-    await nextTick()
-    expect(serializeInner(root)).toBe(`<div>oneTest</div>`)
-    assertHookCalls(one, [1, 1, 0, 0, 1])
-    assertHookCalls(oneTest, [1, 1, 0, 0, 0])
-    assertHookCalls(two, [0, 0, 0, 0, 0])
-
-    viewRef.value = 'two'
-    await nextTick()
-    expect(serializeInner(root)).toBe(`<div>two</div>`)
-    assertHookCalls(one, [1, 1, 0, 0, 1])
-    assertHookCalls(oneTest, [1, 1, 0, 0, 1])
-    assertHookCalls(two, [1, 1, 1, 0, 0])
-
-    viewRef.value = 'one'
-    await nextTick()
-    expect(serializeInner(root)).toBe(`<div>one</div>`)
-    assertHookCalls(one, [2, 2, 0, 0, 1])
-    assertHookCalls(oneTest, [1, 1, 0, 0, 1])
-    assertHookCalls(two, [1, 1, 1, 1, 0])
-
-    viewRef.value = 'oneTest'
-    await nextTick()
-    expect(serializeInner(root)).toBe(`<div>oneTest</div>`)
-    assertHookCalls(one, [2, 2, 0, 0, 2])
-    assertHookCalls(oneTest, [2, 2, 0, 0, 1])
-    assertHookCalls(two, [1, 1, 1, 1, 0])
-
-    viewRef.value = 'two'
-    await nextTick()
-    expect(serializeInner(root)).toBe(`<div>two</div>`)
-    assertHookCalls(one, [2, 2, 0, 0, 2])
-    assertHookCalls(oneTest, [2, 2, 0, 0, 2])
-    assertHookCalls(two, [1, 1, 2, 1, 0])
-
-    // teardown
-    outerRef.value = false
-    await nextTick()
-    expect(serializeInner(root)).toBe(`<!---->`)
-    assertHookCalls(one, [2, 2, 0, 0, 2])
-    assertHookCalls(oneTest, [2, 2, 0, 0, 2])
-    assertHookCalls(two, [1, 1, 2, 2, 1])
   }
 
   describe('props', () => {
@@ -512,10 +376,6 @@ describe('KeepAlive', () => {
 
     test('include (regex)', async () => {
       await assertNameMatch({ include: /^one$/ })
-    })
-
-    test('include (regex with g flag)', async () => {
-      await assertNameMatchWithFlag({ include: /one/g })
     })
 
     test('include (array)', async () => {
@@ -530,10 +390,6 @@ describe('KeepAlive', () => {
       await assertNameMatch({ exclude: /^two$/ })
     })
 
-    test('exclude (regex with a flag)', async () => {
-      await assertNameMatchWithFlagExclude({ exclude: /one/g })
-    })
-
     test('exclude (array)', async () => {
       await assertNameMatch({ exclude: ['two'] })
     })
@@ -543,18 +399,18 @@ describe('KeepAlive', () => {
     })
 
     test('max', async () => {
-      const spyAC = vi.fn()
-      const spyBC = vi.fn()
-      const spyCC = vi.fn()
-      const spyAA = vi.fn()
-      const spyBA = vi.fn()
-      const spyCA = vi.fn()
-      const spyADA = vi.fn()
-      const spyBDA = vi.fn()
-      const spyCDA = vi.fn()
-      const spyAUM = vi.fn()
-      const spyBUM = vi.fn()
-      const spyCUM = vi.fn()
+      const spyAC = jest.fn()
+      const spyBC = jest.fn()
+      const spyCC = jest.fn()
+      const spyAA = jest.fn()
+      const spyBA = jest.fn()
+      const spyCA = jest.fn()
+      const spyADA = jest.fn()
+      const spyBDA = jest.fn()
+      const spyCDA = jest.fn()
+      const spyAUM = jest.fn()
+      const spyBUM = jest.fn()
+      const spyCUM = jest.fn()
 
       function assertCount(calls: number[]) {
         expect([
@@ -569,7 +425,7 @@ describe('KeepAlive', () => {
           spyCC.mock.calls.length,
           spyCA.mock.calls.length,
           spyCDA.mock.calls.length,
-          spyCUM.mock.calls.length,
+          spyCUM.mock.calls.length
         ]).toEqual(calls)
       }
 
@@ -580,22 +436,22 @@ describe('KeepAlive', () => {
           created: spyAC,
           activated: spyAA,
           deactivated: spyADA,
-          unmounted: spyAUM,
+          unmounted: spyAUM
         },
         b: {
           render: () => `two`,
           created: spyBC,
           activated: spyBA,
           deactivated: spyBDA,
-          unmounted: spyBUM,
+          unmounted: spyBUM
         },
         c: {
           render: () => `three`,
           created: spyCC,
           activated: spyCA,
           deactivated: spyCDA,
-          unmounted: spyCUM,
-        },
+          unmounted: spyCUM
+        }
       }
 
       const App = {
@@ -603,7 +459,7 @@ describe('KeepAlive', () => {
           return h(KeepAlive, { max: 2 }, () => {
             return h(views[viewRef.value])
           })
-        },
+        }
       }
       render(h(App), root)
       assertCount([1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
@@ -638,11 +494,11 @@ describe('KeepAlive', () => {
           return h(
             KeepAlive,
             {
-              include: includeRef.value,
+              include: includeRef.value
             },
-            () => h(views[viewRef.value]),
+            () => h(views[viewRef.value])
           )
-        },
+        }
       }
       render(h(App), root)
       return { viewRef, includeRef }
@@ -656,11 +512,11 @@ describe('KeepAlive', () => {
           return h(
             KeepAlive,
             {
-              exclude: excludeRef.value,
+              exclude: excludeRef.value
             },
-            () => h(views[viewRef.value]),
+            () => h(views[viewRef.value])
           )
-        },
+        }
       }
       render(h(App), root)
       return { viewRef, excludeRef }
@@ -753,14 +609,14 @@ describe('KeepAlive', () => {
     async function assertAnonymous(include: boolean) {
       const one = {
         name: 'one',
-        created: vi.fn(),
-        render: () => 'one',
+        created: jest.fn(),
+        render: () => 'one'
       }
 
       const two = {
         // anonymous
-        created: vi.fn(),
-        render: () => 'two',
+        created: jest.fn(),
+        render: () => 'two'
       }
 
       const views: any = { one, two }
@@ -771,11 +627,11 @@ describe('KeepAlive', () => {
           return h(
             KeepAlive,
             {
-              include: include ? 'one' : undefined,
+              include: include ? 'one' : undefined
             },
-            () => h(views[viewRef.value]),
+            () => h(views[viewRef.value])
           )
-        },
+        }
       }
       render(h(App), root)
 
@@ -814,7 +670,7 @@ describe('KeepAlive', () => {
     test('should not destroy active instance when pruning cache', async () => {
       const Foo = {
         render: () => 'foo',
-        unmounted: vi.fn(),
+        unmounted: jest.fn()
       }
       const includeRef = ref(['foo'])
       const App = {
@@ -822,11 +678,11 @@ describe('KeepAlive', () => {
           return h(
             KeepAlive,
             {
-              include: includeRef.value,
+              include: includeRef.value
             },
-            () => h(Foo),
+            () => h(Foo)
           )
-        },
+        }
       }
       render(h(App), root)
       // condition: a render where a previous component is reused
@@ -847,7 +703,7 @@ describe('KeepAlive', () => {
         setup() {
           return () =>
             h(KeepAlive, () => (toggle.value ? h(Foo, { n: n.value }) : null))
-        },
+        }
       }
 
       render(h(App), root)
@@ -870,17 +726,17 @@ describe('KeepAlive', () => {
       name: 'Foo',
       render() {
         return h('Foo')
-      },
+      }
     })
     const Bar = markRaw({
       name: 'Bar',
       render() {
         return h('Bar')
-      },
+      }
     })
 
-    const spyMounted = vi.fn()
-    const spyUnmounted = vi.fn()
+    const spyMounted = jest.fn()
+    const spyUnmounted = jest.fn()
 
     const RouterView = defineComponent({
       setup(_, { slots }) {
@@ -894,19 +750,19 @@ describe('KeepAlive', () => {
           },
           onVnodeUnmounted() {
             spyUnmounted()
-          },
+          }
         }
 
         return () => {
           const child: any = slots.default!({
-            Component: Component!.value,
+            Component: Component!.value
           })[0]
 
           const innerChild = child.children[0]
           child.children[0] = cloneVNode(innerChild, componentProps)
           return child
         }
-      },
+      }
     })
 
     let toggle: () => void = () => {}
@@ -922,14 +778,14 @@ describe('KeepAlive', () => {
         }
         return {
           component,
-          toggle,
+          toggle
         }
       },
       render() {
         return h(RouterView, null, {
-          default: ({ Component }: any) => h(KeepAlive, null, [h(Component)]),
+          default: ({ Component }: any) => h(KeepAlive, null, [h(Component)])
         })
-      },
+      }
     })
 
     render(h(App), root)
@@ -954,7 +810,7 @@ describe('KeepAlive', () => {
     expect(spyUnmounted).toHaveBeenCalledTimes(4)
   })
 
-  // #1511
+  // #1513
   test('should work with cloned root due to scopeId / fallthrough attrs', async () => {
     const viewRef = ref('one')
     const instanceRef = ref<any>(null)
@@ -962,9 +818,9 @@ describe('KeepAlive', () => {
       __scopeId: 'foo',
       render: () => {
         return h(KeepAlive, null, {
-          default: () => h(views[viewRef.value], { ref: instanceRef }),
+          default: () => h(views[viewRef.value], { ref: instanceRef })
         })
-      },
+      }
     }
     render(h(App), root)
     expect(serializeInner(root)).toBe(`<div foo>one</div>`)
@@ -985,7 +841,7 @@ describe('KeepAlive', () => {
       () =>
         new Promise(r => {
           resolve = r as any
-        }),
+        })
     )
 
     const toggle = ref(true)
@@ -993,9 +849,9 @@ describe('KeepAlive', () => {
     const App = {
       render: () => {
         return h(KeepAlive, { include: 'Foo' }, () =>
-          toggle.value ? h(AsyncComp, { ref: instanceRef }) : null,
+          toggle.value ? h(AsyncComp, { ref: instanceRef }) : null
         )
-      },
+      }
     }
 
     render(h(App), root)
@@ -1007,7 +863,7 @@ describe('KeepAlive', () => {
       data: () => ({ count: 0 }),
       render() {
         return h('p', this.count)
-      },
+      }
     })
 
     await timeout()
@@ -1029,12 +885,12 @@ describe('KeepAlive', () => {
   // #4976
   test('handle error in async onActivated', async () => {
     const err = new Error('foo')
-    const handler = vi.fn()
+    const handler = jest.fn()
 
     const app = createApp({
       setup() {
         return () => h(KeepAlive, null, () => h(Child))
-      },
+      }
     })
 
     const Child = {
@@ -1043,7 +899,7 @@ describe('KeepAlive', () => {
           throw err
         })
       },
-      render() {},
+      render() {}
     }
 
     app.config.errorHandler = handler
@@ -1055,12 +911,12 @@ describe('KeepAlive', () => {
 
   // #3648
   test('should avoid unmount later included components', async () => {
-    const unmountedA = vi.fn()
-    const mountedA = vi.fn()
-    const activatedA = vi.fn()
-    const deactivatedA = vi.fn()
-    const unmountedB = vi.fn()
-    const mountedB = vi.fn()
+    const unmountedA = jest.fn()
+    const mountedA = jest.fn()
+    const activatedA = jest.fn()
+    const deactivatedA = jest.fn()
+    const unmountedB = jest.fn()
+    const mountedB = jest.fn()
 
     const A = {
       name: 'A',
@@ -1070,7 +926,7 @@ describe('KeepAlive', () => {
         onActivated(activatedA)
         onDeactivated(deactivatedA)
         return () => 'A'
-      },
+      }
     }
     const B = {
       name: 'B',
@@ -1078,7 +934,7 @@ describe('KeepAlive', () => {
         onMounted(mountedB)
         onUnmounted(unmountedB)
         return () => 'B'
-      },
+      }
     }
 
     const include = reactive<string[]>([])
@@ -1090,13 +946,13 @@ describe('KeepAlive', () => {
             h(
               KeepAlive,
               {
-                include,
+                include
               },
-              h(current.value),
-            ),
+              h(current.value)
+            )
           ]
         }
-      },
+      }
     })
 
     app.mount(root)
@@ -1120,57 +976,5 @@ describe('KeepAlive', () => {
     expect(deactivatedA).toHaveBeenCalledTimes(1)
     expect(mountedB).toHaveBeenCalledTimes(1)
     expect(unmountedB).toHaveBeenCalledTimes(0)
-  })
-
-  // #11717
-  test('remove component from include then switching child', async () => {
-    const About = {
-      name: 'About',
-      render() {
-        return h('h1', 'About')
-      },
-    }
-    const mountedHome = vi.fn()
-    const unmountedHome = vi.fn()
-    const activatedHome = vi.fn()
-    const deactivatedHome = vi.fn()
-    const Home = {
-      name: 'Home',
-      setup() {
-        onMounted(mountedHome)
-        onUnmounted(unmountedHome)
-        onDeactivated(deactivatedHome)
-        onActivated(activatedHome)
-        return () => {
-          h('h1', 'Home')
-        }
-      },
-    }
-    const activeViewName = ref('Home')
-    const cacheList = reactive(['Home'])
-    const App = createApp({
-      setup() {
-        return () => {
-          return [
-            h(
-              KeepAlive,
-              {
-                include: cacheList,
-              },
-              [activeViewName.value === 'Home' ? h(Home) : h(About)],
-            ),
-          ]
-        }
-      },
-    })
-    App.mount(nodeOps.createElement('div'))
-    expect(mountedHome).toHaveBeenCalledTimes(1)
-    expect(activatedHome).toHaveBeenCalledTimes(1)
-    cacheList.splice(0, 1)
-    await nextTick()
-    activeViewName.value = 'About'
-    await nextTick()
-    expect(deactivatedHome).toHaveBeenCalledTimes(0)
-    expect(unmountedHome).toHaveBeenCalledTimes(1)
   })
 })

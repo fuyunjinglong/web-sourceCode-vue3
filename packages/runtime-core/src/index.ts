@@ -1,6 +1,6 @@
 // Core API ------------------------------------------------------------------
 
-export const version: string = __VERSION__
+export const version = __VERSION__
 export {
   // core
   reactive,
@@ -11,7 +11,6 @@ export {
   proxyRefs,
   isRef,
   toRef,
-  toValue,
   toRefs,
   isProxy,
   isReactive,
@@ -28,21 +27,19 @@ export {
   // effect
   effect,
   stop,
-  getCurrentWatcher,
-  onWatcherCleanup,
   ReactiveEffect,
   // effect scope
   effectScope,
   EffectScope,
   getCurrentScope,
-  onScopeDispose,
+  onScopeDispose
 } from '@vue/reactivity'
 export { computed } from './apiComputed'
 export {
   watch,
   watchEffect,
   watchPostEffect,
-  watchSyncEffect,
+  watchSyncEffect
 } from './apiWatch'
 export {
   onBeforeMount,
@@ -56,22 +53,13 @@ export {
   onRenderTracked,
   onRenderTriggered,
   onErrorCaptured,
-  onServerPrefetch,
+  onServerPrefetch
 } from './apiLifecycle'
-export { provide, inject, hasInjectionContext } from './apiInject'
+export { provide, inject } from './apiInject'
 export { nextTick } from './scheduler'
 export { defineComponent } from './apiDefineComponent'
 export { defineAsyncComponent } from './apiAsyncComponent'
 export { useAttrs, useSlots } from './apiSetupHelpers'
-export { useModel } from './helpers/useModel'
-export { useTemplateRef, type TemplateRef } from './helpers/useTemplateRef'
-export { useId } from './helpers/useId'
-export {
-  hydrateOnIdle,
-  hydrateOnVisible,
-  hydrateOnMediaQuery,
-  hydrateOnInteraction,
-} from './hydrationStrategies'
 
 // <script setup> API ----------------------------------------------------------
 
@@ -80,23 +68,11 @@ export {
   defineProps,
   defineEmits,
   defineExpose,
-  defineOptions,
-  defineSlots,
-  defineModel,
   withDefaults,
-  type DefineProps,
-  type ModelRef,
-  type ComponentTypeEmits,
-} from './apiSetupHelpers'
-
-/**
- * @internal
- */
-export {
+  // internal
   mergeDefaults,
-  mergeModels,
   createPropsRestProxy,
-  withAsyncContext,
+  withAsyncContext
 } from './apiSetupHelpers'
 
 // Advanced API ----------------------------------------------------------------
@@ -110,15 +86,14 @@ export { h } from './h'
 // Advanced render function utilities
 export { createVNode, cloneVNode, mergeProps, isVNode } from './vnode'
 // VNode types
-export { Fragment, Text, Comment, Static, type VNodeRef } from './vnode'
+export { Fragment, Text, Comment, Static, VNodeRef } from './vnode'
 // Built-in components
-export { Teleport, type TeleportProps } from './components/Teleport'
-export { Suspense, type SuspenseProps } from './components/Suspense'
-export { KeepAlive, type KeepAliveProps } from './components/KeepAlive'
+export { Teleport, TeleportProps } from './components/Teleport'
+export { Suspense, SuspenseProps } from './components/Suspense'
+export { KeepAlive, KeepAliveProps } from './components/KeepAlive'
 export {
   BaseTransition,
-  BaseTransitionPropsValidators,
-  type BaseTransitionProps,
+  BaseTransitionProps
 } from './components/BaseTransition'
 // For using custom directives
 export { withDirectives } from './directives'
@@ -129,21 +104,17 @@ export { useSSRContext, ssrContextKey } from './helpers/useSsrContext'
 
 export { createRenderer, createHydrationRenderer } from './renderer'
 export { queuePostFlushCb } from './scheduler'
-import { warn as _warn } from './warning'
-export const warn = (__DEV__ ? _warn : NOOP) as typeof _warn
-
-/** @internal */
-export { assertNumber } from './warning'
+export { warn } from './warning'
 export {
   handleError,
   callWithErrorHandling,
   callWithAsyncErrorHandling,
-  ErrorCodes,
+  ErrorCodes
 } from './errorHandling'
 export {
   resolveComponent,
   resolveDirective,
-  resolveDynamicComponent,
+  resolveDynamicComponent
 } from './helpers/resolveAssets'
 // For integration with runtime compiler
 export { registerRuntimeCompiler, isRuntimeOnly } from './component'
@@ -151,39 +122,20 @@ export {
   useTransitionState,
   resolveTransitionHooks,
   setTransitionHooks,
-  getTransitionRawChildren,
+  getTransitionRawChildren
 } from './components/BaseTransition'
 export { initCustomFormatter } from './customFormatter'
 
-import { ErrorTypeStrings as _ErrorTypeStrings } from './errorHandling'
-/**
- * Runtime error messages. Only exposed in dev or esm builds.
- * @internal
- */
-export const ErrorTypeStrings = (
-  __ESM_BUNDLER__ || __CJS__ || __DEV__ ? _ErrorTypeStrings : null
-) as typeof _ErrorTypeStrings
-
 // For devtools
-import {
-  type DevtoolsHook,
-  devtools as _devtools,
-  setDevtoolsHook as _setDevtoolsHook,
-} from './devtools'
+export { devtools, setDevtoolsHook } from './devtools'
 
-export const devtools = (
-  __DEV__ || __ESM_BUNDLER__ ? _devtools : undefined
-) as DevtoolsHook
-export const setDevtoolsHook = (
-  __DEV__ || __ESM_BUNDLER__ ? _setDevtoolsHook : NOOP
-) as typeof _setDevtoolsHook
+// Types -------------------------------------------------------------------------
 
-// Types -----------------------------------------------------------------------
-
-import type { VNode } from './vnode'
-import type { ComponentInternalInstance } from './component'
+import { VNode } from './vnode'
+import { ComponentInternalInstance } from './component'
 
 // Augment Ref unwrap bail types.
+// Note: if updating this, also update `types/refBail.d.ts`.
 declare module '@vue/reactivity' {
   export interface RefUnwrapBailTypes {
     runtimeCoreBailTypes:
@@ -196,11 +148,8 @@ declare module '@vue/reactivity' {
   }
 }
 
-export { TrackOpTypes, TriggerOpTypes } from '@vue/reactivity'
-export type {
+export {
   Ref,
-  MaybeRef,
-  MaybeRefOrGetter,
   ToRef,
   ToRefs,
   UnwrapRef,
@@ -222,127 +171,97 @@ export type {
   DebuggerOptions,
   DebuggerEvent,
   DebuggerEventExtraInfo,
-  Raw,
-  Reactive,
+  TrackOpTypes,
+  TriggerOpTypes
 } from '@vue/reactivity'
-export type {
-  MultiWatchSources,
+export {
   WatchEffect,
   WatchOptions,
-  WatchEffectOptions as WatchOptionsBase,
+  WatchOptionsBase,
   WatchCallback,
   WatchSource,
-  WatchHandle,
-  WatchStopHandle,
+  WatchStopHandle
 } from './apiWatch'
-export type { InjectionKey } from './apiInject'
-export type {
+export { InjectionKey } from './apiInject'
+export {
   App,
   AppConfig,
   AppContext,
   Plugin,
-  ObjectPlugin,
-  FunctionPlugin,
   CreateAppFunction,
-  OptionMergeFunction,
+  OptionMergeFunction
 } from './apiCreateApp'
-export type {
+export {
   VNode,
   VNodeChild,
   VNodeTypes,
   VNodeProps,
   VNodeArrayChildren,
-  VNodeNormalizedChildren,
+  VNodeNormalizedChildren
 } from './vnode'
-export type {
+export {
   Component,
   ConcreteComponent,
   FunctionalComponent,
   ComponentInternalInstance,
   SetupContext,
   ComponentCustomProps,
-  AllowedComponentProps,
-  GlobalComponents,
-  GlobalDirectives,
-  ComponentInstance,
-  ComponentCustomElementInterface,
+  AllowedComponentProps
 } from './component'
-export type {
-  DefineComponent,
-  DefineSetupFnComponent,
-  PublicProps,
-} from './apiDefineComponent'
-export type {
+export { DefineComponent } from './apiDefineComponent'
+export {
   ComponentOptions,
   ComponentOptionsMixin,
+  ComponentOptionsWithoutProps,
+  ComponentOptionsWithObjectProps,
+  ComponentOptionsWithArrayProps,
   ComponentCustomOptions,
   ComponentOptionsBase,
   ComponentProvideOptions,
   RenderFunction,
   MethodOptions,
   ComputedOptions,
-  RuntimeCompilerOptions,
-  ComponentInjectOptions,
-  // deprecated
-  ComponentOptionsWithoutProps,
-  ComponentOptionsWithArrayProps,
-  ComponentOptionsWithObjectProps,
+  RuntimeCompilerOptions
 } from './componentOptions'
-export type {
-  EmitsOptions,
-  ObjectEmitsOptions,
-  EmitsToProps,
-  ShortEmitsToObject,
-  EmitFn,
-} from './componentEmits'
-export type {
+export { EmitsOptions, ObjectEmitsOptions } from './componentEmits'
+export {
   ComponentPublicInstance,
   ComponentCustomProperties,
-  CreateComponentPublicInstance,
-  CreateComponentPublicInstanceWithMixins,
+  CreateComponentPublicInstance
 } from './componentPublicInstance'
-export type {
+export {
   Renderer,
   RendererNode,
   RendererElement,
   HydrationRenderer,
   RendererOptions,
-  RootRenderFunction,
-  ElementNamespace,
+  RootRenderFunction
 } from './renderer'
-export type { RootHydrateFunction } from './hydration'
-export type { Slot, Slots, SlotsType } from './componentSlots'
-export type {
+export { RootHydrateFunction } from './hydration'
+export { Slot, Slots } from './componentSlots'
+export {
   Prop,
   PropType,
   ComponentPropsOptions,
   ComponentObjectPropsOptions,
   ExtractPropTypes,
-  ExtractPublicPropTypes,
-  ExtractDefaultPropTypes,
+  ExtractDefaultPropTypes
 } from './componentProps'
-export type {
+export {
   Directive,
   DirectiveBinding,
   DirectiveHook,
   ObjectDirective,
   FunctionDirective,
-  DirectiveArguments,
+  DirectiveArguments
 } from './directives'
-export type { SuspenseBoundary } from './components/Suspense'
-export type {
-  TransitionState,
-  TransitionHooks,
-} from './components/BaseTransition'
-export type {
+export { SuspenseBoundary } from './components/Suspense'
+export { TransitionState, TransitionHooks } from './components/BaseTransition'
+export {
   AsyncComponentOptions,
-  AsyncComponentLoader,
+  AsyncComponentLoader
 } from './apiAsyncComponent'
-export type {
-  HydrationStrategy,
-  HydrationStrategyFactory,
-} from './hydrationStrategies'
-export type { HMRRuntime } from './hmr'
+export { HMRRuntime } from './hmr'
 
 // Internal API ----------------------------------------------------------------
 
@@ -355,7 +274,7 @@ export {
   withCtx,
   pushScopeId,
   popScopeId,
-  withScopeId,
+  withScopeId
 } from './componentRenderContext'
 export { renderList } from './helpers/renderList'
 export { toHandlers } from './helpers/toHandlers'
@@ -371,7 +290,7 @@ export {
   createStaticVNode,
   createElementVNode,
   createElementBlock,
-  guardReactiveProps,
+  guardReactiveProps
 } from './vnode'
 export {
   toDisplayString,
@@ -380,7 +299,7 @@ export {
   toHandlerKey,
   normalizeProps,
   normalizeClass,
-  normalizeStyle,
+  normalizeStyle
 } from '@vue/shared'
 
 // For test-utils
@@ -391,39 +310,18 @@ export { transformVNodeArgs } from './vnode'
 // **IMPORTANT** These APIs are exposed solely for @vue/server-renderer and may
 // change without notice between versions. User code should never rely on them.
 
-import {
-  createComponentInstance,
-  getComponentPublicInstance,
-  setupComponent,
-} from './component'
+import { createComponentInstance, setupComponent } from './component'
 import { renderComponentRoot } from './componentRenderUtils'
 import { setCurrentRenderingInstance } from './componentRenderContext'
 import { isVNode, normalizeVNode } from './vnode'
-import { ensureValidVNode } from './helpers/renderSlot'
-import { popWarningContext, pushWarningContext } from './warning'
 
-const _ssrUtils: {
-  createComponentInstance: typeof createComponentInstance
-  setupComponent: typeof setupComponent
-  renderComponentRoot: typeof renderComponentRoot
-  setCurrentRenderingInstance: typeof setCurrentRenderingInstance
-  isVNode: typeof isVNode
-  normalizeVNode: typeof normalizeVNode
-  getComponentPublicInstance: typeof getComponentPublicInstance
-  ensureValidVNode: typeof ensureValidVNode
-  pushWarningContext: typeof pushWarningContext
-  popWarningContext: typeof popWarningContext
-} = {
+const _ssrUtils = {
   createComponentInstance,
   setupComponent,
   renderComponentRoot,
   setCurrentRenderingInstance,
   isVNode,
-  normalizeVNode,
-  getComponentPublicInstance,
-  ensureValidVNode,
-  pushWarningContext,
-  popWarningContext,
+  normalizeVNode
 }
 
 /**
@@ -434,39 +332,30 @@ export const ssrUtils = (__SSR__ ? _ssrUtils : null) as typeof _ssrUtils
 
 // 2.x COMPAT ------------------------------------------------------------------
 
-import { DeprecationTypes as _DeprecationTypes } from './compat/compatConfig'
-export type { CompatVue } from './compat/global'
-export type { LegacyConfig } from './compat/globalConfig'
+export { DeprecationTypes } from './compat/compatConfig'
+export { CompatVue } from './compat/global'
+export { LegacyConfig } from './compat/globalConfig'
 
 import { warnDeprecation } from './compat/compatConfig'
 import { createCompatVue } from './compat/global'
 import {
-  checkCompatEnabled,
   isCompatEnabled,
-  softAssertCompatEnabled,
+  checkCompatEnabled,
+  softAssertCompatEnabled
 } from './compat/compatConfig'
 import { resolveFilter as _resolveFilter } from './helpers/resolveAssets'
-import { NOOP } from '@vue/shared'
 
 /**
  * @internal only exposed in compat builds
  */
-export const resolveFilter: typeof _resolveFilter | null = __COMPAT__
-  ? _resolveFilter
-  : null
+export const resolveFilter = __COMPAT__ ? _resolveFilter : null
 
-const _compatUtils: {
-  warnDeprecation: typeof warnDeprecation
-  createCompatVue: typeof createCompatVue
-  isCompatEnabled: typeof isCompatEnabled
-  checkCompatEnabled: typeof checkCompatEnabled
-  softAssertCompatEnabled: typeof softAssertCompatEnabled
-} = {
+const _compatUtils = {
   warnDeprecation,
   createCompatVue,
   isCompatEnabled,
   checkCompatEnabled,
-  softAssertCompatEnabled,
+  softAssertCompatEnabled
 }
 
 /**
@@ -475,7 +364,3 @@ const _compatUtils: {
 export const compatUtils = (
   __COMPAT__ ? _compatUtils : null
 ) as typeof _compatUtils
-
-export const DeprecationTypes = (
-  __COMPAT__ ? _DeprecationTypes : null
-) as typeof _DeprecationTypes

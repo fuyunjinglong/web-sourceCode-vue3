@@ -1,18 +1,19 @@
 import { RESOLVE_FILTER } from '../runtimeHelpers'
 import {
-  type AttributeNode,
-  type DirectiveNode,
-  type ExpressionNode,
+  AttributeNode,
+  DirectiveNode,
+  NodeTransform,
   NodeTypes,
-  type SimpleExpressionNode,
-} from '../ast'
+  SimpleExpressionNode,
+  toValidAssetId,
+  TransformContext
+} from '@vue/compiler-core'
 import {
   CompilerDeprecationTypes,
   isCompatEnabled,
-  warnDeprecation,
+  warnDeprecation
 } from './compatConfig'
-import type { NodeTransform, TransformContext } from '../transform'
-import { toValidAssetId } from '../utils'
+import { ExpressionNode } from '../ast'
 
 const validDivisionCharRE = /[\w).+\-_$\]]/
 
@@ -25,7 +26,9 @@ export const transformFilter: NodeTransform = (node, context) => {
     // filter rewrite is applied before expression transform so only
     // simple expressions are possible at this stage
     rewriteFilter(node.content, context)
-  } else if (node.type === NodeTypes.ELEMENT) {
+  }
+
+  if (node.type === NodeTypes.ELEMENT) {
     node.props.forEach((prop: AttributeNode | DirectiveNode) => {
       if (
         prop.type === NodeTypes.DIRECTIVE &&
@@ -160,21 +163,19 @@ function parseFilter(node: SimpleExpressionNode, context: TransformContext) {
       warnDeprecation(
         CompilerDeprecationTypes.COMPILER_FILTERS,
         context,
-        node.loc,
+        node.loc
       )
     for (i = 0; i < filters.length; i++) {
       expression = wrapFilter(expression, filters[i], context)
     }
     node.content = expression
-    // reset ast since the content is replaced
-    node.ast = undefined
   }
 }
 
 function wrapFilter(
   exp: string,
   filter: string,
-  context: TransformContext,
+  context: TransformContext
 ): string {
   context.helper(RESOLVE_FILTER)
   const i = filter.indexOf('(')

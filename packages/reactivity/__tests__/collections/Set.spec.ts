@@ -1,8 +1,8 @@
-import { effect, isReactive, reactive, toRaw } from '../../src'
+import { reactive, effect, isReactive, toRaw } from '../../src'
 
 describe('reactivity/collections', () => {
   function coverCollectionFn(collection: Set<any>, fnName: string) {
-    const spy = vi.fn()
+    const spy = jest.fn()
     let proxy = reactive(collection)
     ;(collection as any)[fnName] = spy
     return [proxy as any, spy]
@@ -13,8 +13,8 @@ describe('reactivity/collections', () => {
       const original = new Set()
       const observed = reactive(original)
       expect(isReactive(observed)).toBe(true)
-      expect(original).toBeInstanceOf(Set)
-      expect(observed).toBeInstanceOf(Set)
+      expect(original instanceof Set).toBe(true)
+      expect(observed instanceof Set).toBe(true)
     })
 
     it('should observe mutations', () => {
@@ -125,6 +125,7 @@ describe('reactivity/collections', () => {
       const set = reactive(new Set<number>())
       effect(() => {
         dummy = 0
+        // eslint-disable-next-line no-unused-vars
         for (let [key, num] of set.entries()) {
           key
           dummy += num
@@ -181,7 +182,7 @@ describe('reactivity/collections', () => {
     it('should not observe non value changing mutations', () => {
       let dummy
       const set = reactive(new Set())
-      const setSpy = vi.fn(() => (dummy = set.has('value')))
+      const setSpy = jest.fn(() => (dummy = set.has('value')))
       effect(setSpy)
 
       expect(dummy).toBe(false)
@@ -282,7 +283,7 @@ describe('reactivity/collections', () => {
       let dummy
       const key = {}
       const set = reactive(new Set())
-      const setSpy = vi.fn(() => (dummy = set.has(key)))
+      const setSpy = jest.fn(() => (dummy = set.has(key)))
       effect(setSpy)
 
       expect(dummy).toBe(false)
@@ -412,7 +413,7 @@ describe('reactivity/collections', () => {
       const set = reactive(raw)
       set.delete(key)
       expect(
-        `Reactive Set contains both the raw and reactive`,
+        `Reactive Set contains both the raw and reactive`
       ).toHaveBeenWarned()
     })
 

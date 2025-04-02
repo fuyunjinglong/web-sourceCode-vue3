@@ -2,43 +2,39 @@
  * This module is Node-only.
  */
 import {
-  CREATE_STATIC,
-  type CacheExpression,
-  ConstantTypes,
-  type ElementNode,
-  ElementTypes,
-  type ExpressionNode,
-  type HoistTransform,
-  Namespaces,
   NodeTypes,
-  type PlainElementNode,
-  type SimpleExpressionNode,
-  type TemplateChildNode,
-  type TextCallNode,
-  type TransformContext,
+  ElementNode,
+  TransformContext,
+  TemplateChildNode,
+  SimpleExpressionNode,
   createCallExpression,
-  isStaticArgOf,
+  HoistTransform,
+  CREATE_STATIC,
+  ExpressionNode,
+  ElementTypes,
+  PlainElementNode,
+  JSChildNode,
+  TextCallNode,
+  ConstantTypes
 } from '@vue/compiler-core'
 import {
-  escapeHtml,
-  isArray,
-  isBooleanAttr,
-  isKnownHtmlAttr,
-  isKnownMathMLAttr,
-  isKnownSvgAttr,
+  isVoidTag,
   isString,
   isSymbol,
-  isVoidTag,
-  makeMap,
+  isKnownHtmlAttr,
+  escapeHtml,
+  toDisplayString,
   normalizeClass,
   normalizeStyle,
   stringifyStyle,
-  toDisplayString,
+  makeMap,
+  isKnownSvgAttr
 } from '@vue/shared'
+import { DOMNamespaces } from '../parserOptions'
 
-export enum StringifyThresholds {
+export const enum StringifyThresholds {
   ELEMENT_WITH_BINDING_COUNT = 5,
-  NODE_COUNT = 20,
+  NODE_COUNT = 20
 }
 
 type StringifiableNode = PlainElementNode | TextCallNode
@@ -78,14 +74,6 @@ export const stringifyStatic: HoistTransform = (children, context, parent) => {
     return
   }
 
-  const isParentCached =
-    parent.type === NodeTypes.ELEMENT &&
-    parent.codegenNode &&
-    parent.codegenNode.type === NodeTypes.VNODE_CALL &&
-    parent.codegenNode.children &&
-    !isArray(parent.codegenNode.children) &&
-    parent.codegenNode.children.type === NodeTypes.JS_CACHE_EXPRESSION
-
   let nc = 0 // current node count
   let ec = 0 // current element with binding count
   const currentChunk: StringifiableNode[] = []
@@ -98,46 +86,26 @@ export const stringifyStatic: HoistTransform = (children, context, parent) => {
       // combine all currently eligible nodes into a single static vnode call
       const staticCall = createCallExpression(context.helper(CREATE_STATIC), [
         JSON.stringify(
-          currentChunk.map(node => stringifyNode(node, context)).join(''),
+          currentChunk.map(node => stringifyNode(node, context)).join('')
         ).replace(expReplaceRE, `" + $1 + "`),
         // the 2nd argument indicates the number of DOM nodes this static vnode
         // will insert / hydrate
-        String(currentChunk.length),
+        String(currentChunk.length)
       ])
+      // replace the first node's hoisted expression with the static vnode call
+      replaceHoist(currentChunk[0], staticCall, context)
 
-      const deleteCount = currentChunk.length - 1
-
-      if (isParentCached) {
-        // if the parent is cached, then `children` is also the value of the
-        // CacheExpression. Just replace the corresponding range in the cached
-        // list with staticCall.
-        children.splice(
-          currentIndex - currentChunk.length,
-          currentChunk.length,
-          // @ts-expect-error
-          staticCall,
-        )
-      } else {
-        // replace the first node's hoisted expression with the static vnode call
-        ;(currentChunk[0].codegenNode as CacheExpression).value = staticCall
-        if (currentChunk.length > 1) {
-          // remove merged nodes from children
-          children.splice(currentIndex - currentChunk.length + 1, deleteCount)
-          // also adjust index for the remaining cache items
-          const cacheIndex = context.cached.indexOf(
-            currentChunk[currentChunk.length - 1]
-              .codegenNode as CacheExpression,
-          )
-          if (cacheIndex > -1) {
-            for (let i = cacheIndex; i < context.cached.length; i++) {
-              const c = context.cached[i]
-              if (c) c.index -= deleteCount
-            }
-            context.cached.splice(cacheIndex - deleteCount + 1, deleteCount)
-          }
+      if (currentChunk.length > 1) {
+        for (let i = 1; i < currentChunk.length; i++) {
+          // for the merged nodes, set their hoisted expression to null
+          replaceHoist(currentChunk[i], null, context)
         }
+
+        // also remove merged nodes from children
+        const deleteCount = currentChunk.length - 1
+        children.splice(currentIndex - currentChunk.length + 1, deleteCount)
+        return deleteCount
       }
-      return deleteCount
     }
     return 0
   }
@@ -145,15 +113,16 @@ export const stringifyStatic: HoistTransform = (children, context, parent) => {
   let i = 0
   for (; i < children.length; i++) {
     const child = children[i]
-    const isCached = isParentCached || getCachedNode(child)
-    if (isCached) {
-      // presence of cached means child must be a stringifiable node
-      const result = analyzeNode(child as StringifiableNode)
+    const hoisted = getHoistedNode(child)
+    if (hoisted) {
+      // presence of hoisted means child must be a stringifiable node
+      const node = child as StringifiableNode
+      const result = analyzeNode(node)
       if (result) {
         // node is stringifiable, record state
         nc += result[0]
         ec += result[1]
-        currentChunk.push(child as StringifiableNode)
+        currentChunk.push(node)
         continue
       }
     }
@@ -170,39 +139,39 @@ export const stringifyStatic: HoistTransform = (children, context, parent) => {
   stringifyCurrentChunk(i)
 }
 
-const getCachedNode = (
-  node: TemplateChildNode,
-): CacheExpression | undefined => {
-  if (
-    ((node.type === NodeTypes.ELEMENT &&
-      node.tagType === ElementTypes.ELEMENT) ||
-      node.type === NodeTypes.TEXT_CALL) &&
-    node.codegenNode &&
-    node.codegenNode.type === NodeTypes.JS_CACHE_EXPRESSION
-  ) {
-    return node.codegenNode
-  }
-}
+const getHoistedNode = (node: TemplateChildNode) =>
+  ((node.type === NodeTypes.ELEMENT && node.tagType === ElementTypes.ELEMENT) ||
+    node.type == NodeTypes.TEXT_CALL) &&
+  node.codegenNode &&
+  node.codegenNode.type === NodeTypes.SIMPLE_EXPRESSION &&
+  node.codegenNode.hoisted
 
 const dataAriaRE = /^(data|aria)-/
-const isStringifiableAttr = (name: string, ns: Namespaces) => {
+const isStringifiableAttr = (name: string, ns: DOMNamespaces) => {
   return (
-    (ns === Namespaces.HTML
+    (ns === DOMNamespaces.HTML
       ? isKnownHtmlAttr(name)
-      : ns === Namespaces.SVG
-        ? isKnownSvgAttr(name)
-        : ns === Namespaces.MATH_ML
-          ? isKnownMathMLAttr(name)
-          : false) || dataAriaRE.test(name)
+      : ns === DOMNamespaces.SVG
+      ? isKnownSvgAttr(name)
+      : false) || dataAriaRE.test(name)
   )
 }
 
-const isNonStringifiable = /*@__PURE__*/ makeMap(
-  `caption,thead,tr,th,tbody,td,tfoot,colgroup,col`,
+const replaceHoist = (
+  node: StringifiableNode,
+  replacement: JSChildNode | null,
+  context: TransformContext
+) => {
+  const hoistToReplace = (node.codegenNode as SimpleExpressionNode).hoisted!
+  context.hoists[context.hoists.indexOf(hoistToReplace)] = replacement
+}
+
+const isNonStringifiable = /*#__PURE__*/ makeMap(
+  `caption,thead,tr,th,tbody,td,tfoot,colgroup,col`
 )
 
 /**
- * for a cached node, analyze it and return:
+ * for a hoisted node, analyze it and return:
  * - false: bailed (contains non-stringifiable props or runtime constant)
  * - [nc, ec] where
  *   - nc is the number of nodes inside
@@ -230,7 +199,6 @@ function analyzeNode(node: StringifiableNode): [number, number] | false {
   // probably only need to check for most common case
   // i.e. non-phrasing-content tags inside `<p>`
   function walk(node: ElementNode): boolean {
-    const isOptionTag = node.tag === 'option' && node.ns === Namespaces.HTML
     for (let i = 0; i < node.props.length; i++) {
       const p = node.props[i]
       // bail on non-attr bindings
@@ -253,15 +221,6 @@ function analyzeNode(node: StringifiableNode): [number, number] | false {
           p.exp &&
           (p.exp.type === NodeTypes.COMPOUND_EXPRESSION ||
             p.exp.constType < ConstantTypes.CAN_STRINGIFY)
-        ) {
-          return bail()
-        }
-        // <option :value="1"> cannot be safely stringified
-        if (
-          isOptionTag &&
-          isStaticArgOf(p.arg, 'value') &&
-          p.exp &&
-          !p.exp.isStatic
         ) {
           return bail()
         }
@@ -288,7 +247,7 @@ function analyzeNode(node: StringifiableNode): [number, number] | false {
 
 function stringifyNode(
   node: string | TemplateChildNode,
-  context: TransformContext,
+  context: TransformContext
 ): string {
   if (isString(node)) {
     return node
@@ -317,7 +276,7 @@ function stringifyNode(
 
 function stringifyElement(
   node: ElementNode,
-  context: TransformContext,
+  context: TransformContext
 ): string {
   let res = `<${node.tag}`
   let innerHTML = ''
@@ -339,13 +298,6 @@ function stringifyElement(
           }="__VUE_EXP_START__${exp.content}__VUE_EXP_END__"`
           continue
         }
-        // #6568
-        if (
-          isBooleanAttr((p.arg as SimpleExpressionNode).content) &&
-          exp.content === 'false'
-        ) {
-          continue
-        }
         // constant v-bind, e.g. :foo="1"
         let evaluated = evaluateConstant(exp)
         if (evaluated != null) {
@@ -356,7 +308,7 @@ function stringifyElement(
             evaluated = stringifyStyle(normalizeStyle(evaluated))
           }
           res += ` ${(p.arg as SimpleExpressionNode).content}="${escapeHtml(
-            evaluated,
+            evaluated
           )}"`
         }
       } else if (p.name === 'html') {
@@ -365,7 +317,7 @@ function stringifyElement(
         innerHTML = evaluateConstant(p.exp as SimpleExpressionNode)
       } else if (p.name === 'text') {
         innerHTML = escapeHtml(
-          toDisplayString(evaluateConstant(p.exp as SimpleExpressionNode)),
+          toDisplayString(evaluateConstant(p.exp as SimpleExpressionNode))
         )
       }
     }
@@ -396,7 +348,7 @@ function stringifyElement(
 // (see compiler-core/src/transforms/transformExpression)
 function evaluateConstant(exp: ExpressionNode): string {
   if (exp.type === NodeTypes.SIMPLE_EXPRESSION) {
-    return new Function(`return (${exp.content})`)()
+    return new Function(`return ${exp.content}`)()
   } else {
     // compound
     let res = ``
@@ -409,7 +361,7 @@ function evaluateConstant(exp: ExpressionNode): string {
       } else if (c.type === NodeTypes.INTERPOLATION) {
         res += toDisplayString(evaluateConstant(c.content))
       } else {
-        res += evaluateConstant(c as ExpressionNode)
+        res += evaluateConstant(c)
       }
     })
     return res

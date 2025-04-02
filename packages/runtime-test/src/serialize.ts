@@ -1,18 +1,18 @@
 import {
-  type TestComment,
-  type TestElement,
-  type TestNode,
-  TestNodeTypes,
-  type TestText,
+  TestElement,
+  TestNode,
+  NodeTypes,
+  TestText,
+  TestComment
 } from './nodeOps'
 import { isOn } from '@vue/shared'
 
 export function serialize(
   node: TestNode,
   indent: number = 0,
-  depth: number = 0,
+  depth: number = 0
 ): string {
-  if (node.type === TestNodeTypes.ELEMENT) {
+  if (node.type === NodeTypes.ELEMENT) {
     return serializeElement(node, indent, depth)
   } else {
     return serializeText(node, indent, depth)
@@ -22,8 +22,8 @@ export function serialize(
 export function serializeInner(
   node: TestElement,
   indent: number = 0,
-  depth: number = 0,
-): string {
+  depth: number = 0
+) {
   const newLine = indent ? `\n` : ``
   return node.children.length
     ? newLine +
@@ -35,7 +35,7 @@ export function serializeInner(
 function serializeElement(
   node: TestElement,
   indent: number,
-  depth: number,
+  depth: number
 ): string {
   const props = Object.keys(node.props)
     .map(key => {
@@ -43,8 +43,8 @@ function serializeElement(
       return isOn(key) || value == null
         ? ``
         : value === ``
-          ? key
-          : `${key}=${JSON.stringify(value)}`
+        ? key
+        : `${key}=${JSON.stringify(value)}`
     })
     .filter(Boolean)
     .join(' ')
@@ -59,11 +59,11 @@ function serializeElement(
 function serializeText(
   node: TestText | TestComment,
   indent: number,
-  depth: number,
+  depth: number
 ): string {
   const padding = indent ? ` `.repeat(indent).repeat(depth) : ``
   return (
     padding +
-    (node.type === TestNodeTypes.COMMENT ? `<!--${node.text}-->` : node.text)
+    (node.type === NodeTypes.COMMENT ? `<!--${node.text}-->` : node.text)
   )
 }

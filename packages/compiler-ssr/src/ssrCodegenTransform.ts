@@ -1,33 +1,31 @@
 import {
-  type BlockStatement,
-  type CallExpression,
-  type CompilerError,
-  type CompilerOptions,
-  ElementTypes,
-  type IfStatement,
-  type JSChildNode,
-  NodeTypes,
-  type RootNode,
-  type TemplateChildNode,
-  type TemplateLiteral,
-  createBlockStatement,
+  RootNode,
+  BlockStatement,
+  TemplateLiteral,
   createCallExpression,
-  createCompoundExpression,
-  createRoot,
-  createSimpleExpression,
   createTemplateLiteral,
-  createTransformContext,
+  NodeTypes,
+  TemplateChildNode,
+  ElementTypes,
+  createBlockStatement,
+  CompilerOptions,
+  IfStatement,
+  CallExpression,
   isText,
   processExpression,
+  createSimpleExpression,
+  createCompoundExpression,
+  createTransformContext,
+  createRoot
 } from '@vue/compiler-dom'
-import { escapeHtml, isString } from '@vue/shared'
+import { isString, escapeHtml } from '@vue/shared'
 import { SSR_INTERPOLATE, ssrHelpers } from './runtimeHelpers'
 import { ssrProcessIf } from './transforms/ssrVIf'
 import { ssrProcessFor } from './transforms/ssrVFor'
 import { ssrProcessSlotOutlet } from './transforms/ssrTransformSlotOutlet'
 import { ssrProcessComponent } from './transforms/ssrTransformComponent'
 import { ssrProcessElement } from './transforms/ssrTransformElement'
-import { SSRErrorCodes, createSSRCompilerError } from './errors'
+import { createSSRCompilerError, SSRErrorCodes } from './errors'
 
 // Because SSR codegen output is completely different from client-side output
 // (e.g. multiple elements can be concatenated into a single template literal
@@ -35,10 +33,7 @@ import { SSRErrorCodes, createSSRCompilerError } from './errors'
 // transform pass to convert the template AST into a fresh JS AST before
 // passing it to codegen.
 
-export function ssrCodegenTransform(
-  ast: RootNode,
-  options: CompilerOptions,
-): void {
+export function ssrCodegenTransform(ast: RootNode, options: CompilerOptions) {
   const context = createSSRTransformContext(ast, options)
 
   // inject SFC <style> CSS variables
@@ -48,14 +43,14 @@ export function ssrCodegenTransform(
     const cssContext = createTransformContext(createRoot([]), options)
     const varsExp = processExpression(
       createSimpleExpression(options.ssrCssVars, false),
-      cssContext,
+      cssContext
     )
     context.body.push(
-      createCompoundExpression([`const _cssVars = { style: `, varsExp, `}`]),
+      createCompoundExpression([`const _cssVars = { style: `, varsExp, `}`])
     )
-    Array.from(cssContext.helpers.keys()).forEach(helper => {
-      ast.helpers.add(helper)
-    })
+    Array.from(cssContext.helpers.keys()).forEach(helper =>
+      ast.helpers.push(helper)
+    )
   }
 
   const isFragment =
@@ -66,33 +61,20 @@ export function ssrCodegenTransform(
   // Finalize helpers.
   // We need to separate helpers imported from 'vue' vs. '@vue/server-renderer'
   ast.ssrHelpers = Array.from(
-    new Set([
-      ...Array.from(ast.helpers).filter(h => h in ssrHelpers),
-      ...context.helpers,
-    ]),
+    new Set([...ast.helpers.filter(h => h in ssrHelpers), ...context.helpers])
   )
 
-  ast.helpers = new Set(Array.from(ast.helpers).filter(h => !(h in ssrHelpers)))
+  ast.helpers = ast.helpers.filter(h => !(h in ssrHelpers))
 }
 
-export interface SSRTransformContext {
-  root: RootNode
-  options: CompilerOptions
-  body: (JSChildNode | IfStatement)[]
-  helpers: Set<symbol>
-  withSlotScopeId: boolean
-  onError: (error: CompilerError) => void
-  helper<T extends symbol>(name: T): T
-  pushStringPart(part: TemplateLiteral['elements'][0]): void
-  pushStatement(statement: IfStatement | CallExpression): void
-}
+export type SSRTransformContext = ReturnType<typeof createSSRTransformContext>
 
 function createSSRTransformContext(
   root: RootNode,
   options: CompilerOptions,
   helpers: Set<symbol> = new Set(),
-  withSlotScopeId = false,
-): SSRTransformContext {
+  withSlotScopeId = false
+) {
   const body: BlockStatement['body'] = []
   let currentString: TemplateLiteral | null = null
 
@@ -111,7 +93,7 @@ function createSSRTransformContext(
       helpers.add(name)
       return name
     },
-    pushStringPart(part) {
+    pushStringPart(part: TemplateLiteral['elements'][0]) {
       if (!currentString) {
         const currentCall = createCallExpression(`_push`)
         body.push(currentCall)
@@ -126,24 +108,24 @@ function createSSRTransformContext(
         bufferedElements.push(part)
       }
     },
-    pushStatement(statement) {
+    pushStatement(statement: IfStatement | CallExpression) {
       // close current string
       currentString = null
       body.push(statement)
-    },
+    }
   }
 }
 
 function createChildContext(
   parent: SSRTransformContext,
-  withSlotScopeId = parent.withSlotScopeId,
+  withSlotScopeId = parent.withSlotScopeId
 ): SSRTransformContext {
   // ensure child inherits parent helpers
   return createSSRTransformContext(
     parent.root,
     parent.options,
     parent.helpers,
-    withSlotScopeId,
+    withSlotScopeId
   )
 }
 
@@ -155,9 +137,8 @@ export function processChildren(
   parent: Container,
   context: SSRTransformContext,
   asFragment = false,
-  disableNestedFragments = false,
-  disableComment = false,
-): void {
+  disableNestedFragments = false
+) {
   if (asFragment) {
     context.pushStringPart(`<!--[-->`)
   }
@@ -183,8 +164,8 @@ export function processChildren(
             context.onError(
               createSSRCompilerError(
                 SSRErrorCodes.X_SSR_INVALID_AST_NODE,
-                (child as any).loc,
-              ),
+                (child as any).loc
+              )
             )
             // make sure we exhaust all possible types
             const exhaustiveCheck: never = child
@@ -197,19 +178,15 @@ export function processChildren(
       case NodeTypes.COMMENT:
         // no need to escape comment here because the AST can only
         // contain valid comments.
-        if (!disableComment) {
-          context.pushStringPart(`<!--${child.content}-->`)
-        }
+        context.pushStringPart(`<!--${child.content}-->`)
         break
       case NodeTypes.INTERPOLATION:
         context.pushStringPart(
-          createCallExpression(context.helper(SSR_INTERPOLATE), [
-            child.content,
-          ]),
+          createCallExpression(context.helper(SSR_INTERPOLATE), [child.content])
         )
         break
       case NodeTypes.IF:
-        ssrProcessIf(child, context, disableNestedFragments, disableComment)
+        ssrProcessIf(child, context, disableNestedFragments)
         break
       case NodeTypes.FOR:
         ssrProcessFor(child, context, disableNestedFragments)
@@ -226,8 +203,8 @@ export function processChildren(
         context.onError(
           createSSRCompilerError(
             SSRErrorCodes.X_SSR_INVALID_AST_NODE,
-            (child as any).loc,
-          ),
+            (child as any).loc
+          )
         )
         // make sure we exhaust all possible types
         const exhaustiveCheck: never = child
@@ -243,7 +220,7 @@ export function processChildrenAsStatement(
   parent: Container,
   parentContext: SSRTransformContext,
   asFragment = false,
-  withSlotScopeId: boolean = parentContext.withSlotScopeId,
+  withSlotScopeId = parentContext.withSlotScopeId
 ): BlockStatement {
   const childContext = createChildContext(parentContext, withSlotScopeId)
   processChildren(parent, childContext, asFragment)

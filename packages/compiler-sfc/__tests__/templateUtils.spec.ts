@@ -1,8 +1,8 @@
 import {
-  isDataUrl,
-  isExternalUrl,
   isRelativeUrl,
-} from '../src/template/templateUtils'
+  isExternalUrl,
+  isDataUrl
+} from '../../compiler-sfc/src/templateUtils'
 
 describe('compiler sfc:templateUtils isRelativeUrl', () => {
   test('should return true when The first character of the string path is .', () => {

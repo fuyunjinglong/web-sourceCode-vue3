@@ -1,23 +1,17 @@
-import { pauseTracking, resetTracking } from '@vue/reactivity'
-import type { VNode } from './vnode'
-import type { ComponentInternalInstance } from './component'
-import { popWarningContext, pushWarningContext, warn } from './warning'
-import { EMPTY_OBJ, isArray, isFunction, isPromise } from '@vue/shared'
-import { LifecycleHooks } from './enums'
-import { WatchErrorCodes } from '@vue/reactivity'
+import { VNode } from './vnode'
+import { ComponentInternalInstance, LifecycleHooks } from './component'
+import { warn, pushWarningContext, popWarningContext } from './warning'
+import { isPromise, isFunction } from '@vue/shared'
 
 // contexts where user provided function may be executed, in addition to
 // lifecycle hooks.
-export enum ErrorCodes {
+export const enum ErrorCodes {
   SETUP_FUNCTION,
   RENDER_FUNCTION,
-  // The error codes for the watch have been transferred to the reactivity
-  // package along with baseWatch to maintain code compatibility. Hence,
-  // it is essential to keep these values unchanged.
-  // WATCH_GETTER,
-  // WATCH_CALLBACK,
-  // WATCH_CLEANUP,
-  NATIVE_EVENT_HANDLER = 5,
+  WATCH_GETTER,
+  WATCH_CALLBACK,
+  WATCH_CLEANUP,
+  NATIVE_EVENT_HANDLER,
   COMPONENT_EVENT_HANDLER,
   VNODE_HOOK,
   DIRECTIVE_HOOK,
@@ -26,12 +20,10 @@ export enum ErrorCodes {
   APP_WARN_HANDLER,
   FUNCTION_REF,
   ASYNC_COMPONENT_LOADER,
-  SCHEDULER,
-  COMPONENT_UPDATE,
-  APP_UNMOUNT_CLEANUP,
+  SCHEDULER
 }
 
-export const ErrorTypeStrings: Record<ErrorTypes, string> = {
+export const ErrorTypeStrings: Record<number | string, string> = {
   [LifecycleHooks.SERVER_PREFETCH]: 'serverPrefetch hook',
   [LifecycleHooks.BEFORE_CREATE]: 'beforeCreate hook',
   [LifecycleHooks.CREATED]: 'created hook',
@@ -48,9 +40,9 @@ export const ErrorTypeStrings: Record<ErrorTypes, string> = {
   [LifecycleHooks.RENDER_TRIGGERED]: 'renderTriggered hook',
   [ErrorCodes.SETUP_FUNCTION]: 'setup function',
   [ErrorCodes.RENDER_FUNCTION]: 'render function',
-  [WatchErrorCodes.WATCH_GETTER]: 'watcher getter',
-  [WatchErrorCodes.WATCH_CALLBACK]: 'watcher callback',
-  [WatchErrorCodes.WATCH_CLEANUP]: 'watcher cleanup function',
+  [ErrorCodes.WATCH_GETTER]: 'watcher getter',
+  [ErrorCodes.WATCH_CALLBACK]: 'watcher callback',
+  [ErrorCodes.WATCH_CLEANUP]: 'watcher cleanup function',
   [ErrorCodes.NATIVE_EVENT_HANDLER]: 'native event handler',
   [ErrorCodes.COMPONENT_EVENT_HANDLER]: 'component event handler',
   [ErrorCodes.VNODE_HOOK]: 'vnode hook',
@@ -60,32 +52,34 @@ export const ErrorTypeStrings: Record<ErrorTypes, string> = {
   [ErrorCodes.APP_WARN_HANDLER]: 'app warnHandler',
   [ErrorCodes.FUNCTION_REF]: 'ref function',
   [ErrorCodes.ASYNC_COMPONENT_LOADER]: 'async component loader',
-  [ErrorCodes.SCHEDULER]: 'scheduler flush',
-  [ErrorCodes.COMPONENT_UPDATE]: 'component update',
-  [ErrorCodes.APP_UNMOUNT_CLEANUP]: 'app unmount cleanup function',
+  [ErrorCodes.SCHEDULER]:
+    'scheduler flush. This is likely a Vue internals bug. ' +
+    'Please open an issue at https://new-issue.vuejs.org/?repo=vuejs/core'
 }
 
-export type ErrorTypes = LifecycleHooks | ErrorCodes | WatchErrorCodes
+export type ErrorTypes = LifecycleHooks | ErrorCodes
 
 export function callWithErrorHandling(
   fn: Function,
-  instance: ComponentInternalInstance | null | undefined,
+  instance: ComponentInternalInstance | null,
   type: ErrorTypes,
-  args?: unknown[],
-): any {
+  args?: unknown[]
+) {
+  let res
   try {
-    return args ? fn(...args) : fn()
+    res = args ? fn(...args) : fn()
   } catch (err) {
     handleError(err, instance, type)
   }
+  return res
 }
 
 export function callWithAsyncErrorHandling(
   fn: Function | Function[],
   instance: ComponentInternalInstance | null,
   type: ErrorTypes,
-  args?: unknown[],
-): any {
+  args?: unknown[]
+): any[] {
   if (isFunction(fn)) {
     const res = callWithErrorHandling(fn, instance, type, args)
     if (res && isPromise(res)) {
@@ -96,36 +90,26 @@ export function callWithAsyncErrorHandling(
     return res
   }
 
-  if (isArray(fn)) {
-    const values = []
-    for (let i = 0; i < fn.length; i++) {
-      values.push(callWithAsyncErrorHandling(fn[i], instance, type, args))
-    }
-    return values
-  } else if (__DEV__) {
-    warn(
-      `Invalid value type passed to callWithAsyncErrorHandling(): ${typeof fn}`,
-    )
+  const values = []
+  for (let i = 0; i < fn.length; i++) {
+    values.push(callWithAsyncErrorHandling(fn[i], instance, type, args))
   }
+  return values
 }
 
 export function handleError(
   err: unknown,
-  instance: ComponentInternalInstance | null | undefined,
+  instance: ComponentInternalInstance | null,
   type: ErrorTypes,
-  throwInDev = true,
-): void {
+  throwInDev = true
+) {
   const contextVNode = instance ? instance.vnode : null
-  const { errorHandler, throwUnhandledErrorInProduction } =
-    (instance && instance.appContext.config) || EMPTY_OBJ
   if (instance) {
     let cur = instance.parent
     // the exposed instance is the render proxy to keep it consistent with 2.x
     const exposedInstance = instance.proxy
     // in production the hook receives only the error code
-    const errorInfo = __DEV__
-      ? ErrorTypeStrings[type]
-      : `https://vuejs.org/error-reference/#runtime-${type}`
+    const errorInfo = __DEV__ ? ErrorTypeStrings[type] : type
     while (cur) {
       const errorCapturedHooks = cur.ec
       if (errorCapturedHooks) {
@@ -140,26 +124,25 @@ export function handleError(
       cur = cur.parent
     }
     // app-level handling
-    if (errorHandler) {
-      pauseTracking()
-      callWithErrorHandling(errorHandler, null, ErrorCodes.APP_ERROR_HANDLER, [
-        err,
-        exposedInstance,
-        errorInfo,
-      ])
-      resetTracking()
+    const appErrorHandler = instance.appContext.config.errorHandler
+    if (appErrorHandler) {
+      callWithErrorHandling(
+        appErrorHandler,
+        null,
+        ErrorCodes.APP_ERROR_HANDLER,
+        [err, exposedInstance, errorInfo]
+      )
       return
     }
   }
-  logError(err, type, contextVNode, throwInDev, throwUnhandledErrorInProduction)
+  logError(err, type, contextVNode, throwInDev)
 }
 
 function logError(
   err: unknown,
   type: ErrorTypes,
   contextVNode: VNode | null,
-  throwInDev = true,
-  throwInProd = false,
+  throwInDev = true
 ) {
   if (__DEV__) {
     const info = ErrorTypeStrings[type]
@@ -176,8 +159,6 @@ function logError(
     } else if (!__TEST__) {
       console.error(err)
     }
-  } else if (throwInProd) {
-    throw err
   } else {
     // recover in prod to reduce the impact on end-user
     console.error(err)

@@ -1,24 +1,24 @@
-import { type ComponentPublicInstance, type Directive, ssrUtils } from 'vue'
+import { ComponentPublicInstance, Directive } from '@vue/runtime-core'
 
 export function ssrGetDirectiveProps(
   instance: ComponentPublicInstance,
   dir: Directive,
   value?: any,
   arg?: string,
-  modifiers: Record<string, boolean> = {},
+  modifiers: Record<string, boolean> = {}
 ): Record<string, any> {
   if (typeof dir !== 'function' && dir.getSSRProps) {
     return (
       dir.getSSRProps(
         {
           dir,
-          instance: ssrUtils.getComponentPublicInstance(instance.$),
+          instance,
           value,
           oldValue: undefined,
           arg,
-          modifiers,
+          modifiers
         },
-        null as any,
+        null as any
       ) || {}
     )
   }

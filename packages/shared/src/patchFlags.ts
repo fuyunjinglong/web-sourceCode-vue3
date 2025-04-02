@@ -16,7 +16,7 @@
  * Check the `patchElement` function in '../../runtime-core/src/renderer.ts' to see how the
  * flags are handled during diff.
  */
-export enum PatchFlags {
+export const enum PatchFlags {
   /**
    * Indicates an element with dynamic textContent (children fast path)
    */
@@ -57,11 +57,10 @@ export enum PatchFlags {
   FULL_PROPS = 1 << 4,
 
   /**
-   * Indicates an element that requires props hydration
-   * (but not necessarily patching)
-   * e.g. event listeners & v-bind with prop modifier
+   * Indicates an element with event listeners (which need to be attached
+   * during hydration)
    */
-  NEED_HYDRATION = 1 << 5,
+  HYDRATE_EVENTS = 1 << 5,
 
   /**
    * Indicates a fragment whose children order doesn't change.
@@ -109,10 +108,10 @@ export enum PatchFlags {
    */
 
   /**
-   * Indicates a cached static vnode. This is also a hint for hydration to skip
+   * Indicates a hoisted static vnode. This is a hint for hydration to skip
    * the entire sub tree since static content never needs to be updated.
    */
-  CACHED = -1,
+  HOISTED = -1,
   /**
    * A special flag that indicates that the diffing algorithm should bail out
    * of optimized mode. For example, on block fragments created by renderSlot()
@@ -120,25 +119,25 @@ export enum PatchFlags {
    * render functions, which should always be fully diffed)
    * OR manually cloneVNodes
    */
-  BAIL = -2,
+  BAIL = -2
 }
 
 /**
  * dev only flag -> name mapping
  */
-export const PatchFlagNames: Record<PatchFlags, string> = {
+export const PatchFlagNames = {
   [PatchFlags.TEXT]: `TEXT`,
   [PatchFlags.CLASS]: `CLASS`,
   [PatchFlags.STYLE]: `STYLE`,
   [PatchFlags.PROPS]: `PROPS`,
   [PatchFlags.FULL_PROPS]: `FULL_PROPS`,
-  [PatchFlags.NEED_HYDRATION]: `NEED_HYDRATION`,
+  [PatchFlags.HYDRATE_EVENTS]: `HYDRATE_EVENTS`,
   [PatchFlags.STABLE_FRAGMENT]: `STABLE_FRAGMENT`,
   [PatchFlags.KEYED_FRAGMENT]: `KEYED_FRAGMENT`,
   [PatchFlags.UNKEYED_FRAGMENT]: `UNKEYED_FRAGMENT`,
   [PatchFlags.NEED_PATCH]: `NEED_PATCH`,
   [PatchFlags.DYNAMIC_SLOTS]: `DYNAMIC_SLOTS`,
   [PatchFlags.DEV_ROOT_FRAGMENT]: `DEV_ROOT_FRAGMENT`,
-  [PatchFlags.CACHED]: `HOISTED`,
-  [PatchFlags.BAIL]: `BAIL`,
+  [PatchFlags.HOISTED]: `HOISTED`,
+  [PatchFlags.BAIL]: `BAIL`
 }

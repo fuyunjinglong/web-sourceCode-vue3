@@ -1,63 +1,63 @@
 import {
-  TrackOpTypes,
-  TriggerOpTypes,
   isReactive,
   reactive,
   track,
+  TrackOpTypes,
   trigger,
+  TriggerOpTypes
 } from '@vue/reactivity'
 import {
-  NOOP,
-  extend,
-  invokeArrayFns,
-  isArray,
   isFunction,
+  extend,
+  NOOP,
+  isArray,
   isObject,
   isString,
+  invokeArrayFns
 } from '@vue/shared'
 import { warn } from '../warning'
 import { cloneVNode, createVNode } from '../vnode'
-import type { ElementNamespace, RootRenderFunction } from '../renderer'
-import type {
+import { RootRenderFunction } from '../renderer'
+import {
   App,
   AppConfig,
   AppContext,
   CreateAppFunction,
-  Plugin,
+  Plugin
 } from '../apiCreateApp'
 import {
-  type Component,
-  type ComponentOptions,
+  Component,
+  ComponentOptions,
   createComponentInstance,
   finishComponentSetup,
   isRuntimeOnly,
-  setupComponent,
+  setupComponent
 } from '../component'
 import {
-  type RenderFunction,
-  internalOptionMergeStrats,
+  RenderFunction,
   mergeOptions,
+  internalOptionMergeStrats
 } from '../componentOptions'
-import type { ComponentPublicInstance } from '../componentPublicInstance'
+import { ComponentPublicInstance } from '../componentPublicInstance'
 import { devtoolsInitApp, devtoolsUnmountApp } from '../devtools'
-import type { Directive } from '../directives'
+import { Directive } from '../directives'
 import { nextTick } from '../scheduler'
 import { version } from '..'
 import {
-  type LegacyConfig,
   installLegacyConfigWarnings,
   installLegacyOptionMergeStrats,
+  LegacyConfig
 } from './globalConfig'
-import type { LegacyDirective } from './customDirective'
+import { LegacyDirective } from './customDirective'
 import {
+  warnDeprecation,
   DeprecationTypes,
   assertCompatEnabled,
   configureCompat,
   isCompatEnabled,
-  softAssertCompatEnabled,
-  warnDeprecation,
+  softAssertCompatEnabled
 } from './compatConfig'
-import type { LegacyPublicInstance } from './instance'
+import { LegacyPublicInstance } from './instance'
 
 /**
  * @deprecated the default `Vue` export has been removed in Vue 3. The type for
@@ -77,21 +77,13 @@ export type CompatVue = Pick<App, 'version' | 'component' | 'directive'> & {
 
   nextTick: typeof nextTick
 
-  use<Options extends unknown[]>(
-    plugin: Plugin<Options>,
-    ...options: Options
-  ): CompatVue
-  use<Options>(plugin: Plugin<Options>, options: Options): CompatVue
-
+  use(plugin: Plugin, ...options: any[]): CompatVue
   mixin(mixin: ComponentOptions): CompatVue
 
   component(name: string): Component | undefined
   component(name: string, component: Component): CompatVue
-  directive<T = any, V = any>(name: string): Directive<T, V> | undefined
-  directive<T = any, V = any>(
-    name: string,
-    directive: Directive<T, V>,
-  ): CompatVue
+  directive(name: string): Directive | undefined
+  directive(name: string, directive: Directive): CompatVue
 
   compile(template: string): RenderFunction
 
@@ -102,11 +94,11 @@ export type CompatVue = Pick<App, 'version' | 'component' | 'directive'> & {
   /**
    * @deprecated Vue 3 no longer needs set() for adding new properties.
    */
-  set(target: any, key: PropertyKey, value: any): void
+  set(target: any, key: string | number | symbol, value: any): void
   /**
    * @deprecated Vue 3 no longer needs delete() for property deletions.
    */
-  delete(target: any, key: PropertyKey): void
+  delete(target: any, key: string | number | symbol): void
   /**
    * @deprecated use `reactive` instead.
    */
@@ -142,12 +134,12 @@ let singletonCtor: CompatVue
 // Legacy global Vue constructor
 export function createCompatVue(
   createApp: CreateAppFunction<Element>,
-  createSingletonApp: CreateAppFunction<Element>,
+  createSingletonApp: CreateAppFunction<Element>
 ): CompatVue {
   singletonApp = createSingletonApp({})
 
   const Vue: CompatVue = (singletonCtor = function Vue(
-    options: ComponentOptions = {},
+    options: ComponentOptions = {}
   ) {
     return createCompatApp(options, Vue)
   } as any)
@@ -181,11 +173,11 @@ export function createCompatVue(
   Vue.version = `2.6.14-compat:${__VERSION__}`
   Vue.config = singletonApp.config
 
-  Vue.use = (plugin: Plugin, ...options: any[]) => {
-    if (plugin && isFunction(plugin.install)) {
-      plugin.install(Vue as any, ...options)
-    } else if (isFunction(plugin)) {
-      plugin(Vue as any, ...options)
+  Vue.use = (p, ...options) => {
+    if (p && isFunction(p.install)) {
+      p.install(Vue as any, ...options)
+    } else if (isFunction(p)) {
+      p(Vue as any, ...options)
     }
     return Vue
   }
@@ -241,9 +233,9 @@ export function createCompatVue(
           mergeOptions(
             extend({}, SubVue.options),
             inlineOptions,
-            internalOptionMergeStrats as any,
+            internalOptionMergeStrats as any
           ),
-          SubVue,
+          SubVue
         )
       }
     }
@@ -259,14 +251,14 @@ export function createCompatVue(
       mergeBase[key] = isArray(superValue)
         ? superValue.slice()
         : isObject(superValue)
-          ? extend(Object.create(null), superValue)
-          : superValue
+        ? extend(Object.create(null), superValue)
+        : superValue
     }
 
     SubVue.options = mergeOptions(
       mergeBase,
       extendOptions,
-      internalOptionMergeStrats as any,
+      internalOptionMergeStrats as any
     )
 
     SubVue.options._base = SubVue
@@ -313,15 +305,15 @@ export function createCompatVue(
       mergeOptions(
         parent,
         child,
-        vm ? undefined : (internalOptionMergeStrats as any),
+        vm ? undefined : (internalOptionMergeStrats as any)
       ),
-    defineReactive,
+    defineReactive
   }
   Object.defineProperty(Vue, 'util', {
     get() {
       assertCompatEnabled(DeprecationTypes.GLOBAL_PRIVATE_UTIL, null)
       return util
-    },
+    }
   })
 
   Vue.configureCompat = configureCompat
@@ -332,8 +324,8 @@ export function createCompatVue(
 export function installAppCompatProperties(
   app: App,
   context: AppContext,
-  render: RootRenderFunction<any>,
-): void {
+  render: RootRenderFunction<any>
+) {
   installFilterMethod(app, context)
   installLegacyOptionMergeStrats(app.config)
 
@@ -372,7 +364,7 @@ function installLegacyAPIs(app: App) {
       get() {
         __DEV__ && warnDeprecation(DeprecationTypes.GLOBAL_PROTOTYPE, null)
         return app.config.globalProperties
-      },
+      }
     },
     nextTick: { value: nextTick },
     extend: { value: singletonCtor.extend },
@@ -382,8 +374,8 @@ function installLegacyAPIs(app: App) {
     util: {
       get() {
         return singletonCtor.util
-      },
-    },
+      }
+    }
   })
 }
 
@@ -391,7 +383,7 @@ function applySingletonAppMutations(app: App) {
   // copy over asset registries and deopt flag
   app._context.mixins = [...singletonApp._context.mixins]
   ;['components', 'directives', 'filters'].forEach(key => {
-    // @ts-expect-error
+    // @ts-ignore
     app._context[key] = Object.create(singletonApp._context[key])
   })
 
@@ -406,7 +398,7 @@ function applySingletonAppMutations(app: App) {
       continue
     }
     const val = singletonApp.config[key as keyof AppConfig]
-    // @ts-expect-error
+    // @ts-ignore
     app.config[key] = isObject(val) ? Object.create(val) : val
 
     // compat for runtime ignoredElements -> isCustomElement
@@ -432,14 +424,15 @@ function applySingletonPrototype(app: App, Ctor: Function) {
     app.config.globalProperties = Object.create(Ctor.prototype)
   }
   let hasPrototypeAugmentations = false
-  for (const key of Object.getOwnPropertyNames(Ctor.prototype)) {
+  const descriptors = Object.getOwnPropertyDescriptors(Ctor.prototype)
+  for (const key in descriptors) {
     if (key !== 'constructor') {
       hasPrototypeAugmentations = true
       if (enabled) {
         Object.defineProperty(
           app.config.globalProperties,
           key,
-          Object.getOwnPropertyDescriptor(Ctor.prototype, key)!,
+          descriptors[key]
         )
       }
     }
@@ -452,7 +445,7 @@ function applySingletonPrototype(app: App, Ctor: Function) {
 function installCompatMount(
   app: App,
   context: AppContext,
-  render: RootRenderFunction,
+  render: RootRenderFunction
 ) {
   let isMounted = false
 
@@ -500,7 +493,7 @@ function installCompatMount(
         if (!result) {
           __DEV__ &&
             warn(
-              `Failed to mount root instance: selector "${selectorOrEl}" returned null.`,
+              `Failed to mount root instance: selector "${selectorOrEl}" returned null.`
             )
           return
         }
@@ -510,13 +503,7 @@ function installCompatMount(
         container = selectorOrEl || document.createElement('div')
       }
 
-      let namespace: ElementNamespace
-      if (container instanceof SVGElement) namespace = 'svg'
-      else if (
-        typeof MathMLElement === 'function' &&
-        container instanceof MathMLElement
-      )
-        namespace = 'mathml'
+      const isSVG = container instanceof SVGElement
 
       // HMR root reload
       if (__DEV__) {
@@ -524,7 +511,7 @@ function installCompatMount(
           const cloned = cloneVNode(vnode)
           // compat mode will use instance if not reset to null
           cloned.component = null
-          render(cloned, container, namespace)
+          render(cloned, container, isSVG)
         }
       }
 
@@ -548,10 +535,10 @@ function installCompatMount(
       }
 
       // clear content before mounting
-      container.textContent = ''
+      container.innerHTML = ''
 
       // TODO hydration
-      render(vnode, container, namespace)
+      render(vnode, container, isSVG)
 
       if (container instanceof Element) {
         container.removeAttribute('v-cloak')
@@ -610,7 +597,7 @@ const methodsToPatch = [
   'unshift',
   'splice',
   'sort',
-  'reverse',
+  'reverse'
 ]
 
 const patched = new WeakSet<object>()
@@ -622,9 +609,11 @@ function defineReactive(obj: any, key: string, val: any) {
   if (isObject(val) && !isReactive(val) && !patched.has(val)) {
     const reactiveVal = reactive(val)
     if (isArray(val)) {
-      methodsToPatch.forEach((m: any) => {
+      methodsToPatch.forEach(m => {
+        // @ts-ignore
         val[m] = (...args: any[]) => {
-          Array.prototype[m].apply(reactiveVal, args)
+          // @ts-ignore
+          Array.prototype[m].call(reactiveVal, ...args)
         }
       })
     } else {
@@ -660,6 +649,6 @@ function defineReactiveSimple(obj: any, key: string, val: any) {
     set(newVal) {
       val = isObject(newVal) ? reactive(newVal) : newVal
       trigger(obj, TriggerOpTypes.SET, key, newVal)
-    },
+    }
   })
 }

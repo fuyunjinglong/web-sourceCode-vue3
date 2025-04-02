@@ -1,17 +1,11 @@
 import { isFunction } from '@vue/shared'
 import { currentInstance } from './component'
 import { currentRenderingInstance } from './componentRenderContext'
-import { currentApp } from './apiCreateApp'
 import { warn } from './warning'
 
-interface InjectionConstraint<T> {}
+export interface InjectionKey<T> extends Symbol {}
 
-export type InjectionKey<T> = symbol & InjectionConstraint<T>
-
-export function provide<T, K = InjectionKey<T> | string | number>(
-  key: K,
-  value: K extends InjectionKey<infer V> ? V : T,
-): void {
+export function provide<T>(key: InjectionKey<T> | string | number, value: T) {
   if (!currentInstance) {
     if (__DEV__) {
       warn(`provide() can only be used inside setup().`)
@@ -37,42 +31,36 @@ export function inject<T>(key: InjectionKey<T> | string): T | undefined
 export function inject<T>(
   key: InjectionKey<T> | string,
   defaultValue: T,
-  treatDefaultAsFactory?: false,
+  treatDefaultAsFactory?: false
 ): T
 export function inject<T>(
   key: InjectionKey<T> | string,
   defaultValue: T | (() => T),
-  treatDefaultAsFactory: true,
+  treatDefaultAsFactory: true
 ): T
 export function inject(
   key: InjectionKey<any> | string,
   defaultValue?: unknown,
-  treatDefaultAsFactory = false,
+  treatDefaultAsFactory = false
 ) {
   // fallback to `currentRenderingInstance` so that this can be called in
   // a functional component
   const instance = currentInstance || currentRenderingInstance
-
-  // also support looking up from app-level provides w/ `app.runWithContext()`
-  if (instance || currentApp) {
+  if (instance) {
     // #2400
     // to support `app.use` plugins,
     // fallback to appContext's `provides` if the instance is at root
-    // #11488, in a nested createApp, prioritize using the provides from currentApp
-    const provides = currentApp
-      ? currentApp._context.provides
-      : instance
-        ? instance.parent == null
-          ? instance.vnode.appContext && instance.vnode.appContext.provides
-          : instance.parent.provides
-        : undefined
+    const provides =
+      instance.parent == null
+        ? instance.vnode.appContext && instance.vnode.appContext.provides
+        : instance.parent.provides
 
     if (provides && (key as string | symbol) in provides) {
       // TS doesn't allow symbol as index type
       return provides[key as string]
     } else if (arguments.length > 1) {
       return treatDefaultAsFactory && isFunction(defaultValue)
-        ? defaultValue.call(instance && instance.proxy)
+        ? defaultValue.call(instance.proxy)
         : defaultValue
     } else if (__DEV__) {
       warn(`injection "${String(key)}" not found.`)
@@ -80,13 +68,4 @@ export function inject(
   } else if (__DEV__) {
     warn(`inject() can only be used inside setup() or functional components.`)
   }
-}
-
-/**
- * Returns true if `inject()` can be used without warning about being called in the wrong place (e.g. outside of
- * setup()). This is used by libraries that want to use `inject()` internally without triggering a warning to the end
- * user. One example is `useRoute()` in `vue-router`.
- */
-export function hasInjectionContext(): boolean {
-  return !!(currentInstance || currentRenderingInstance || currentApp)
 }

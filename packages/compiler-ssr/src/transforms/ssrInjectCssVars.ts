@@ -1,12 +1,13 @@
 import {
-  ElementTypes,
-  type NodeTransform,
+  NodeTransform,
   NodeTypes,
-  type RootNode,
-  type TemplateChildNode,
-  createSimpleExpression,
-  findDir,
+  ElementTypes,
   locStub,
+  createSimpleExpression,
+  RootNode,
+  TemplateChildNode,
+  findDir,
+  isBuiltInType
 } from '@vue/compiler-dom'
 
 export const ssrInjectCssVars: NodeTransform = (node, context) => {
@@ -42,7 +43,7 @@ function injectCssVars(node: RootNode | TemplateChildNode) {
       node.tagType === ElementTypes.COMPONENT) &&
     !findDir(node, 'for')
   ) {
-    if (node.tag === 'suspense' || node.tag === 'Suspense') {
+    if (isBuiltInType(node.tag, 'Suspense')) {
       for (const child of node.children) {
         if (
           child.type === NodeTypes.ELEMENT &&
@@ -61,7 +62,7 @@ function injectCssVars(node: RootNode | TemplateChildNode) {
         arg: undefined,
         exp: createSimpleExpression(`_cssVars`, false),
         modifiers: [],
-        loc: locStub,
+        loc: locStub
       })
     }
   }

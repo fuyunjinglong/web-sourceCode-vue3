@@ -1,16 +1,16 @@
 import {
-  type Ref,
-  type SetupContext,
-  type VNode,
-  h,
-  inject,
-  nextTick,
-  nodeOps,
-  provide,
   ref,
+  h,
   render,
+  nodeOps,
   serializeInner,
+  nextTick,
+  VNode,
+  provide,
+  inject,
+  Ref,
   watch,
+  SetupContext
 } from '@vue/runtime-test'
 
 describe('renderer: component', () => {
@@ -24,7 +24,7 @@ describe('renderer: component', () => {
       render: () => {
         // let Parent first rerender
         return (parentVnode = h(Child))
-      },
+      }
     }
 
     const Child = {
@@ -32,7 +32,7 @@ describe('renderer: component', () => {
         return value.value
           ? (childVnode1 = h('div'))
           : (childVnode2 = h('span'))
-      },
+      }
     }
 
     const root = nodeOps.createElement('div')
@@ -50,7 +50,7 @@ describe('renderer: component', () => {
     const Comp = {
       render: () => {
         return h('div')
-      },
+      }
     }
     const root = nodeOps.createElement('div')
     render(h(Comp, { id: 'foo', class: 'bar' }), root)
@@ -61,7 +61,7 @@ describe('renderer: component', () => {
     const Comp = {
       render: () => {
         return h('div', 'test')
-      },
+      }
     }
     const root = nodeOps.createElement('div')
     render(h(Comp, { id: 'foo', class: 'bar' }), root)
@@ -72,7 +72,7 @@ describe('renderer: component', () => {
     const Comp1 = {
       render: () => {
         return h('div', 'foo')
-      },
+      }
     }
     const root = nodeOps.createElement('div')
     render(h(Comp1), root)
@@ -81,7 +81,7 @@ describe('renderer: component', () => {
     const Comp2 = {
       render: () => {
         return h('span', 'foo')
-      },
+      }
     }
     render(h(Comp2), root)
     expect(serializeInner(root)).toBe('<span>foo</span>')
@@ -91,21 +91,21 @@ describe('renderer: component', () => {
   it('should not update Component if only changed props are declared emit listeners', () => {
     const Comp1 = {
       emits: ['foo'],
-      updated: vi.fn(),
-      render: () => null,
+      updated: jest.fn(),
+      render: () => null
     }
     const root = nodeOps.createElement('div')
     render(
       h(Comp1, {
-        onFoo: () => {},
+        onFoo: () => {}
       }),
-      root,
+      root
     )
     render(
       h(Comp1, {
-        onFoo: () => {},
+        onFoo: () => {}
       }),
-      root,
+      root
     )
     expect(Comp1.updated).not.toHaveBeenCalled()
   })
@@ -119,7 +119,7 @@ describe('renderer: component', () => {
         return () => {
           return [h('div', n.value), h(Child)]
         }
-      },
+      }
     }
 
     const Child = {
@@ -130,7 +130,7 @@ describe('renderer: component', () => {
         return () => {
           return h('div', n.value)
         }
-      },
+      }
     }
 
     const root = nodeOps.createElement('div')
@@ -145,29 +145,29 @@ describe('renderer: component', () => {
     function returnThis(this: any, _arg: any) {
       return this
     }
-    const propWatchSpy = vi.fn(returnThis)
-    const dataWatchSpy = vi.fn(returnThis)
+    const propWatchSpy = jest.fn(returnThis)
+    const dataWatchSpy = jest.fn(returnThis)
     let instance: any
     const Comp = {
       props: {
-        testProp: String,
+        testProp: String
       },
 
       data() {
         return {
-          testData: undefined,
+          testData: undefined
         }
       },
 
       watch: {
         testProp() {
-          // @ts-expect-error
+          // @ts-ignore
           propWatchSpy(this.$el)
         },
         testData() {
-          // @ts-expect-error
+          // @ts-ignore
           dataWatchSpy(this.$el)
-        },
+        }
       },
 
       created() {
@@ -176,7 +176,7 @@ describe('renderer: component', () => {
 
       render() {
         return h('div')
-      },
+      }
     }
 
     const root = nodeOps.createElement('div')
@@ -206,11 +206,11 @@ describe('renderer: component', () => {
             h('div', inner.value),
             h(Child, {
               value: outer.value,
-              onUpdate: (val: number) => (inner.value = val),
-            }),
+              onUpdate: (val: number) => (inner.value = val)
+            })
           ]
         }
-      },
+      }
     }
 
     const Child = {
@@ -218,13 +218,13 @@ describe('renderer: component', () => {
       setup(props: any, { emit }: SetupContext) {
         watch(
           () => props.value,
-          (val: number) => emit('update', val),
+          (val: number) => emit('update', val)
         )
 
         return () => {
           return h('div', props.value)
         }
-      },
+      }
     }
 
     const root = nodeOps.createElement('div')
@@ -236,105 +236,6 @@ describe('renderer: component', () => {
     expect(serializeInner(root)).toBe(`<div>1</div><div>1</div>`)
   })
 
-  test('child only updates once when triggered in multiple ways', async () => {
-    const a = ref(0)
-    const calls: string[] = []
-
-    const Parent = {
-      setup() {
-        return () => {
-          calls.push('render parent')
-          return h(Child, { count: a.value }, () => a.value)
-        }
-      },
-    }
-
-    const Child = {
-      props: ['count'],
-      setup(props: any) {
-        return () => {
-          calls.push('render child')
-          return `${props.count} - ${a.value}`
-        }
-      },
-    }
-
-    render(h(Parent), nodeOps.createElement('div'))
-    expect(calls).toEqual(['render parent', 'render child'])
-
-    // This will trigger child rendering directly, as well as via a prop change
-    a.value++
-    await nextTick()
-    expect(calls).toEqual([
-      'render parent',
-      'render child',
-      'render parent',
-      'render child',
-    ])
-  })
-
-  // #7745
-  test(`an earlier update doesn't lead to excessive subsequent updates`, async () => {
-    const globalCount = ref(0)
-    const parentCount = ref(0)
-    const calls: string[] = []
-
-    const Root = {
-      setup() {
-        return () => {
-          calls.push('render root')
-          return h(Parent, { count: globalCount.value })
-        }
-      },
-    }
-
-    const Parent = {
-      props: ['count'],
-      setup(props: any) {
-        return () => {
-          calls.push('render parent')
-          return [
-            `${globalCount.value} - ${props.count}`,
-            h(Child, { count: parentCount.value }),
-          ]
-        }
-      },
-    }
-
-    const Child = {
-      props: ['count'],
-      setup(props: any) {
-        watch(
-          () => props.count,
-          () => {
-            calls.push('child watcher')
-            globalCount.value = props.count
-          },
-        )
-
-        return () => {
-          calls.push('render child')
-        }
-      },
-    }
-
-    render(h(Root), nodeOps.createElement('div'))
-    expect(calls).toEqual(['render root', 'render parent', 'render child'])
-
-    parentCount.value++
-    await nextTick()
-    expect(calls).toEqual([
-      'render root',
-      'render parent',
-      'render child',
-      'render parent',
-      'child watcher',
-      'render child',
-      'render root',
-      'render parent',
-    ])
-  })
-
   // #2521
   test('should pause tracking deps when initializing legacy options', async () => {
     let childInstance = null as any
@@ -342,7 +243,7 @@ describe('renderer: component', () => {
       props: ['foo'],
       data() {
         return {
-          count: 0,
+          count: 0
         }
       },
       watch: {
@@ -350,8 +251,8 @@ describe('renderer: component', () => {
           immediate: true,
           handler() {
             ;(this as any).count
-          },
-        },
+          }
+        }
       },
       created() {
         childInstance = this as any
@@ -359,14 +260,14 @@ describe('renderer: component', () => {
       },
       render() {
         return h('h1', (this as any).count)
-      },
+      }
     }
 
     const App = {
       setup() {
         return () => h(Child)
       },
-      updated: vi.fn(),
+      updated: jest.fn()
     }
 
     const root = nodeOps.createElement('div')
@@ -388,7 +289,7 @@ describe('renderer: component', () => {
         },
         render() {
           return h('h1', (this as any).foo)
-        },
+        }
       }
       const root = nodeOps.createElement('div')
 
@@ -404,7 +305,7 @@ describe('renderer: component', () => {
       render() {
         const c = [h(Comp)]
         return [c, c, c]
-      },
+      }
     }
 
     const ids: number[] = []
@@ -412,7 +313,7 @@ describe('renderer: component', () => {
       render: () => h('h1'),
       beforeUnmount() {
         ids.push((this as any).$.uid)
-      },
+      }
     }
 
     const root = nodeOps.createElement('div')
@@ -426,12 +327,12 @@ describe('renderer: component', () => {
 
   test('child component props update should not lead to double update', async () => {
     const text = ref(0)
-    const spy = vi.fn()
+    const spy = jest.fn()
 
     const App = {
       render() {
         return h(Comp, { text: text.value })
-      },
+      }
     }
 
     const Comp = {
@@ -439,7 +340,7 @@ describe('renderer: component', () => {
       render(this: any) {
         spy()
         return h('h1', this.text)
-      },
+      }
     }
 
     const root = nodeOps.createElement('div')
@@ -452,26 +353,5 @@ describe('renderer: component', () => {
     await nextTick()
     expect(serializeInner(root)).toBe(`<h1>1</h1>`)
     expect(spy).toHaveBeenCalledTimes(2)
-  })
-
-  it('should warn accessing `this` in a <script setup> template', () => {
-    const App = {
-      setup() {
-        return {
-          __isScriptSetup: true,
-        }
-      },
-
-      render(this: any) {
-        return this.$attrs.id
-      },
-    }
-
-    const root = nodeOps.createElement('div')
-    render(h(App), root)
-
-    expect(
-      `Property '$attrs' was accessed via 'this'. Avoid using 'this' in templates.`,
-    ).toHaveBeenWarned()
   })
 })

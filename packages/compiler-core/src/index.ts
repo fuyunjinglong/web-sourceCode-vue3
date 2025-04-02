@@ -2,38 +2,31 @@ export { baseCompile } from './compile'
 
 // Also expose lower level APIs & types
 export {
-  type CompilerOptions,
-  type ParserOptions,
-  type TransformOptions,
-  type CodegenOptions,
-  type HoistTransform,
-  type BindingMetadata,
-  BindingTypes,
+  CompilerOptions,
+  ParserOptions,
+  TransformOptions,
+  CodegenOptions,
+  HoistTransform,
+  BindingMetadata,
+  BindingTypes
 } from './options'
-export { baseParse } from './parser'
+export { baseParse, TextModes } from './parse'
 export {
   transform,
-  type TransformContext,
+  TransformContext,
   createTransformContext,
   traverseNode,
   createStructuralDirectiveTransform,
-  type NodeTransform,
-  type StructuralDirectiveTransform,
-  type DirectiveTransform,
+  NodeTransform,
+  StructuralDirectiveTransform,
+  DirectiveTransform
 } from './transform'
-export {
-  generate,
-  type CodegenContext,
-  type CodegenResult,
-  type CodegenSourceMapGenerator,
-  type RawSourceMap,
-} from './codegen'
+export { generate, CodegenContext, CodegenResult } from './codegen'
 export {
   ErrorCodes,
-  errorMessages,
-  createCompilerError,
-  type CoreCompilerError,
-  type CompilerError,
+  CoreCompilerError,
+  CompilerError,
+  createCompilerError
 } from './errors'
 
 export * from './ast'
@@ -41,7 +34,7 @@ export * from './utils'
 export * from './babelUtils'
 export * from './runtimeHelpers'
 
-export { getBaseTransformPreset, type TransformPreset } from './compile'
+export { getBaseTransformPreset, TransformPreset } from './compile'
 export { transformModel } from './transforms/vModel'
 export { transformOn } from './transforms/vOn'
 export { transformBind } from './transforms/vBind'
@@ -50,29 +43,28 @@ export { processIf } from './transforms/vIf'
 export { processFor, createForLoopParams } from './transforms/vFor'
 export {
   transformExpression,
-  processExpression,
-  stringifyExpression,
+  processExpression
 } from './transforms/transformExpression'
 export {
   buildSlots,
-  type SlotFnBuilder,
+  SlotFnBuilder,
   trackVForSlotScopes,
-  trackSlotScopes,
+  trackSlotScopes
 } from './transforms/vSlot'
 export {
   transformElement,
   resolveComponentType,
   buildProps,
   buildDirectiveArgs,
-  type PropsExpression,
+  PropsExpression
 } from './transforms/transformElement'
 export { processSlotOutlet } from './transforms/transformSlotOutlet'
-export { getConstantType } from './transforms/cacheStatic'
+export { getConstantType } from './transforms/hoistStatic'
 export { generateCodeFrame } from '@vue/shared'
 
 // v2 compat only
 export {
   checkCompatEnabled,
   warnDeprecation,
-  CompilerDeprecationTypes,
+  CompilerDeprecationTypes
 } from './compat/compatConfig'

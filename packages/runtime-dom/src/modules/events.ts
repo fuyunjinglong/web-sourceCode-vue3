@@ -1,10 +1,9 @@
-import { NOOP, hyphenate, isArray, isFunction } from '@vue/shared'
+import { hyphenate, isArray } from '@vue/shared'
 import {
-  type ComponentInternalInstance,
-  ErrorCodes,
-  callWithAsyncErrorHandling,
-  warn,
+  ComponentInternalInstance,
+  callWithAsyncErrorHandling
 } from '@vue/runtime-core'
+import { ErrorCodes } from 'packages/runtime-core/src/errorHandling'
 
 interface Invoker extends EventListener {
   value: EventValue
@@ -13,12 +12,44 @@ interface Invoker extends EventListener {
 
 type EventValue = Function | Function[]
 
+// Async edge case fix requires storing an event listener's attach timestamp.
+const [_getNow, skipTimestampCheck] = /*#__PURE__*/ (() => {
+  let _getNow = Date.now
+  let skipTimestampCheck = false
+  if (typeof window !== 'undefined') {
+    // Determine what event timestamp the browser is using. Annoyingly, the
+    // timestamp can either be hi-res (relative to page load) or low-res
+    // (relative to UNIX epoch), so in order to compare time we have to use the
+    // same timestamp type when saving the flush timestamp.
+    if (Date.now() > document.createEvent('Event').timeStamp) {
+      // if the low-res timestamp which is bigger than the event timestamp
+      // (which is evaluated AFTER) it means the event is using a hi-res timestamp,
+      // and we need to use the hi-res version for event listeners as well.
+      _getNow = performance.now.bind(performance)
+    }
+    // #3485: Firefox <= 53 has incorrect Event.timeStamp implementation
+    // and does not fire microtasks in between event propagation, so safe to exclude.
+    const ffMatch = navigator.userAgent.match(/firefox\/(\d+)/i)
+    skipTimestampCheck = !!(ffMatch && Number(ffMatch[1]) <= 53)
+  }
+  return [_getNow, skipTimestampCheck]
+})()
+
+// To avoid the overhead of repeatedly calling performance.now(), we cache
+// and use the same timestamp for all event listeners attached in the same tick.
+let cachedNow: number = 0
+const p = /*#__PURE__*/ Promise.resolve()
+const reset = () => {
+  cachedNow = 0
+}
+const getNow = () => cachedNow || (p.then(reset), (cachedNow = _getNow()))
+
 export function addEventListener(
   el: Element,
   event: string,
   handler: EventListener,
-  options?: EventListenerOptions,
-): void {
+  options?: EventListenerOptions
+) {
   el.addEventListener(event, handler, options)
 }
 
@@ -26,38 +57,29 @@ export function removeEventListener(
   el: Element,
   event: string,
   handler: EventListener,
-  options?: EventListenerOptions,
-): void {
+  options?: EventListenerOptions
+) {
   el.removeEventListener(event, handler, options)
 }
 
-const veiKey: unique symbol = Symbol('_vei')
-
 export function patchEvent(
-  el: Element & { [veiKey]?: Record<string, Invoker | undefined> },
+  el: Element & { _vei?: Record<string, Invoker | undefined> },
   rawName: string,
   prevValue: EventValue | null,
-  nextValue: EventValue | unknown,
-  instance: ComponentInternalInstance | null = null,
-): void {
+  nextValue: EventValue | null,
+  instance: ComponentInternalInstance | null = null
+) {
   // vei = vue event invokers
-  const invokers = el[veiKey] || (el[veiKey] = {})
+  const invokers = el._vei || (el._vei = {})
   const existingInvoker = invokers[rawName]
   if (nextValue && existingInvoker) {
     // patch
-    existingInvoker.value = __DEV__
-      ? sanitizeEventValue(nextValue, rawName)
-      : (nextValue as EventValue)
+    existingInvoker.value = nextValue
   } else {
     const [name, options] = parseName(rawName)
     if (nextValue) {
       // add
-      const invoker = (invokers[rawName] = createInvoker(
-        __DEV__
-          ? sanitizeEventValue(nextValue, rawName)
-          : (nextValue as EventValue),
-        instance,
-      ))
+      const invoker = (invokers[rawName] = createInvoker(nextValue, instance))
       addEventListener(el, name, invoker, options)
     } else if (existingInvoker) {
       // remove
@@ -83,61 +105,36 @@ function parseName(name: string): [string, EventListenerOptions | undefined] {
   return [event, options]
 }
 
-// To avoid the overhead of repeatedly calling Date.now(), we cache
-// and use the same timestamp for all event listeners attached in the same tick.
-let cachedNow: number = 0
-const p = /*@__PURE__*/ Promise.resolve()
-const getNow = () =>
-  cachedNow || (p.then(() => (cachedNow = 0)), (cachedNow = Date.now()))
-
 function createInvoker(
   initialValue: EventValue,
-  instance: ComponentInternalInstance | null,
+  instance: ComponentInternalInstance | null
 ) {
-  const invoker: Invoker = (e: Event & { _vts?: number }) => {
-    // async edge case vuejs/vue#6566
-    // inner click event triggers patch, event handler
+  const invoker: Invoker = (e: Event) => {
+    // async edge case #6566: inner click event triggers patch, event handler
     // attached to outer element during patch, and triggered again. This
     // happens because browsers fire microtask ticks between event propagation.
-    // this no longer happens for templates in Vue 3, but could still be
-    // theoretically possible for hand-written render functions.
-    // the solution: we save the timestamp when a handler is attached,
-    // and also attach the timestamp to any event that was handled by vue
-    // for the first time (to avoid inconsistent event timestamp implementations
-    // or events fired from iframes, e.g. #2513)
-    // The handler would only fire if the event passed to it was fired
+    // the solution is simple: we save the timestamp when a handler is attached,
+    // and the handler would only fire if the event passed to it was fired
     // AFTER it was attached.
-    if (!e._vts) {
-      e._vts = Date.now()
-    } else if (e._vts <= invoker.attached) {
-      return
+    const timeStamp = e.timeStamp || _getNow()
+
+    if (skipTimestampCheck || timeStamp >= invoker.attached - 1) {
+      callWithAsyncErrorHandling(
+        patchStopImmediatePropagation(e, invoker.value),
+        instance,
+        ErrorCodes.NATIVE_EVENT_HANDLER,
+        [e]
+      )
     }
-    callWithAsyncErrorHandling(
-      patchStopImmediatePropagation(e, invoker.value),
-      instance,
-      ErrorCodes.NATIVE_EVENT_HANDLER,
-      [e],
-    )
   }
   invoker.value = initialValue
   invoker.attached = getNow()
   return invoker
 }
 
-function sanitizeEventValue(value: unknown, propName: string): EventValue {
-  if (isFunction(value) || isArray(value)) {
-    return value as EventValue
-  }
-  warn(
-    `Wrong type passed as event handler to ${propName} - did you forget @ or : ` +
-      `in front of your prop?\nExpected function or array of functions, received type ${typeof value}.`,
-  )
-  return NOOP
-}
-
 function patchStopImmediatePropagation(
   e: Event,
-  value: EventValue,
+  value: EventValue
 ): EventValue {
   if (isArray(value)) {
     const originalStop = e.stopImmediatePropagation
@@ -145,9 +142,7 @@ function patchStopImmediatePropagation(
       originalStop.call(e)
       ;(e as any)._stopped = true
     }
-    return (value as Function[]).map(
-      fn => (e: Event) => !(e as any)._stopped && fn && fn(e),
-    )
+    return value.map(fn => (e: Event) => !(e as any)._stopped && fn && fn(e))
   } else {
     return value
   }

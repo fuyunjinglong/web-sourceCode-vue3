@@ -1,20 +1,19 @@
 import { isArray } from '@vue/shared'
-import type { ComponentInternalInstance } from '../component'
-import { ErrorCodes, callWithAsyncErrorHandling } from '../errorHandling'
-import { DeprecationTypes, assertCompatEnabled } from './compatConfig'
-import type { ComponentPublicInstance } from '../componentPublicInstance'
+import { ComponentInternalInstance } from '../component'
+import { callWithAsyncErrorHandling, ErrorCodes } from '../errorHandling'
+import { assertCompatEnabled, DeprecationTypes } from './compatConfig'
 
 interface EventRegistry {
   [event: string]: Function[] | undefined
 }
 
-const eventRegistryMap = /*@__PURE__*/ new WeakMap<
+const eventRegistryMap = /*#__PURE__*/ new WeakMap<
   ComponentInternalInstance,
   EventRegistry
 >()
 
 export function getRegistry(
-  instance: ComponentInternalInstance,
+  instance: ComponentInternalInstance
 ): EventRegistry {
   let events = eventRegistryMap.get(instance)
   if (!events) {
@@ -26,8 +25,8 @@ export function getRegistry(
 export function on(
   instance: ComponentInternalInstance,
   event: string | string[],
-  fn: Function,
-): ComponentPublicInstance | null {
+  fn: Function
+) {
   if (isArray(event)) {
     event.forEach(e => on(instance, e, fn))
   } else {
@@ -35,7 +34,7 @@ export function on(
       assertCompatEnabled(
         DeprecationTypes.INSTANCE_EVENT_HOOKS,
         instance,
-        event,
+        event
       )
     } else {
       assertCompatEnabled(DeprecationTypes.INSTANCE_EVENT_EMITTER, instance)
@@ -49,11 +48,11 @@ export function on(
 export function once(
   instance: ComponentInternalInstance,
   event: string,
-  fn: Function,
-): ComponentPublicInstance | null {
+  fn: Function
+) {
   const wrapped = (...args: any[]) => {
     off(instance, event, wrapped)
-    fn.apply(instance.proxy, args)
+    fn.call(instance.proxy, ...args)
   }
   wrapped.fn = fn
   on(instance, event, wrapped)
@@ -63,8 +62,8 @@ export function once(
 export function off(
   instance: ComponentInternalInstance,
   event?: string | string[],
-  fn?: Function,
-): ComponentPublicInstance | null {
+  fn?: Function
+) {
   assertCompatEnabled(DeprecationTypes.INSTANCE_EVENT_EMITTER, instance)
   const vm = instance.proxy
   // all
@@ -94,15 +93,15 @@ export function off(
 export function emit(
   instance: ComponentInternalInstance,
   event: string,
-  args: any[],
-): ComponentPublicInstance | null {
+  args: any[]
+) {
   const cbs = getRegistry(instance)[event]
   if (cbs) {
     callWithAsyncErrorHandling(
       cbs.map(cb => cb.bind(instance.proxy)),
       instance,
       ErrorCodes.COMPONENT_EVENT_HANDLER,
-      args,
+      args
     )
   }
   return instance.proxy

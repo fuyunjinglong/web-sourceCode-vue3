@@ -1,38 +1,31 @@
 import {
-  BaseTransition,
-  type BaseTransitionProps,
-  KeepAlive,
-  type TestElement,
-  type VNodeProps,
-  h,
-  nextTick,
   nodeOps,
-  ref,
   render,
-  serialize,
+  h,
+  BaseTransition,
+  BaseTransitionProps,
+  ref,
+  nextTick,
   serializeInner,
+  serialize,
+  VNodeProps,
+  KeepAlive,
+  TestElement
 } from '@vue/runtime-test'
 
 function mount(
   props: BaseTransitionProps,
   slot: () => any,
-  withKeepAlive = false,
+  withKeepAlive = false
 ) {
   const root = nodeOps.createElement('div')
-  const show = ref(true)
-  const unmount = () => (show.value = false)
-  const App = {
-    render() {
-      return show.value
-        ? h(BaseTransition, props, () => {
-            return withKeepAlive ? h(KeepAlive, null, slot()) : slot()
-          })
-        : null
-    },
-  }
-  render(h(App), root)
-
-  return { root, unmount }
+  render(
+    h(BaseTransition, props, () => {
+      return withKeepAlive ? h(KeepAlive, null, slot()) : slot()
+    }),
+    root
+  )
+  return root
 }
 
 function mockProps(extra: BaseTransitionProps = {}, withKeepAlive = false) {
@@ -41,52 +34,52 @@ function mockProps(extra: BaseTransitionProps = {}, withKeepAlive = false) {
     doneLeave: Record<string, () => void>
   } = {
     doneEnter: {},
-    doneLeave: {},
+    doneLeave: {}
   }
   const props: BaseTransitionProps = {
-    onBeforeEnter: vi.fn(el => {
+    onBeforeEnter: jest.fn(el => {
       if (!extra.persisted && !withKeepAlive) {
         expect(el.parentNode).toBeNull()
       }
     }),
-    onEnter: vi.fn((el, done) => {
+    onEnter: jest.fn((el, done) => {
       cbs.doneEnter[serialize(el as TestElement)] = done
     }),
-    onAfterEnter: vi.fn(),
-    onEnterCancelled: vi.fn(),
-    onBeforeLeave: vi.fn(),
-    onLeave: vi.fn((el, done) => {
+    onAfterEnter: jest.fn(),
+    onEnterCancelled: jest.fn(),
+    onBeforeLeave: jest.fn(),
+    onLeave: jest.fn((el, done) => {
       cbs.doneLeave[serialize(el as TestElement)] = done
     }),
-    onAfterLeave: vi.fn(),
-    onLeaveCancelled: vi.fn(),
-    onBeforeAppear: vi.fn(),
-    onAppear: vi.fn((el, done) => {
+    onAfterLeave: jest.fn(),
+    onLeaveCancelled: jest.fn(),
+    onBeforeAppear: jest.fn(),
+    onAppear: jest.fn((el, done) => {
       cbs.doneEnter[serialize(el as TestElement)] = done
     }),
-    onAfterAppear: vi.fn(),
-    onAppearCancelled: vi.fn(),
-    ...extra,
+    onAfterAppear: jest.fn(),
+    onAppearCancelled: jest.fn(),
+    ...extra
   }
   return {
     props,
-    cbs,
+    cbs
   }
 }
 
 function assertCalls(
   props: BaseTransitionProps,
-  calls: Record<string, number>,
+  calls: Record<string, number>
 ) {
   Object.keys(calls).forEach(key => {
     expect(props[key as keyof BaseTransitionProps]).toHaveBeenCalledTimes(
-      calls[key],
+      calls[key]
     )
   })
 }
 
 function assertCalledWithEl(fn: any, expected: string, callIndex = 0) {
-  expect(serialize(fn.mock.calls[callIndex][0])).toBe(expected)
+  expect(serialize((fn as jest.Mock).mock.calls[callIndex][0])).toBe(expected)
 }
 
 interface ToggleOptions {
@@ -103,7 +96,7 @@ function runTestWithElements(tester: TestFn) {
     trueBranch: () => h('div'),
     falseBranch: () => h('span'),
     trueSerialized: `<div></div>`,
-    falseSerialized: `<span></span>`,
+    falseSerialized: `<span></span>`
   })
 }
 
@@ -116,7 +109,7 @@ function runTestWithComponents(tester: TestFn) {
     trueBranch: () => h(CompA, { msg: 'foo' }),
     falseBranch: () => h(CompB, { msg: 'bar' }),
     trueSerialized: `<div>foo</div>`,
-    falseSerialized: `<span>bar</span>`,
+    falseSerialized: `<span>bar</span>`
   })
 }
 
@@ -125,29 +118,29 @@ function runTestWithKeepAlive(tester: TestFn) {
     setup() {
       const count = ref(0)
       return () => h('div', count.value)
-    },
+    }
   }
   const falseComp = {
     setup() {
       const count = ref(0)
       return () => h('span', count.value)
-    },
+    }
   }
   return tester(
     {
       trueBranch: () => h(trueComp),
       falseBranch: () => h(falseComp),
       trueSerialized: `<div>0</div>`,
-      falseSerialized: `<span>0</span>`,
+      falseSerialized: `<span>0</span>`
     },
-    true /* withKeepAlive: true */,
+    true /* withKeepAlive: true */
   )
 }
 
 describe('BaseTransition', () => {
   test('appear: true w/ appear hooks', () => {
     const { props, cbs } = mockProps({
-      appear: true,
+      appear: true
     })
     mount(props, () => h('div'))
     expect(props.onBeforeAppear).toHaveBeenCalledTimes(1)
@@ -170,7 +163,7 @@ describe('BaseTransition', () => {
       onBeforeAppear: undefined,
       onAppear: undefined,
       onAfterAppear: undefined,
-      onAppearCancelled: undefined,
+      onAppearCancelled: undefined
     })
     mount(props, () => h('div'))
     expect(props.onBeforeEnter).toHaveBeenCalledTimes(1)
@@ -205,7 +198,7 @@ describe('BaseTransition', () => {
               })
             }
           }
-        },
+        }
       }
       return { state, toggle, hooks }
     }
@@ -259,14 +252,14 @@ describe('BaseTransition', () => {
         trueBranch,
         trueSerialized,
         falseBranch,
-        falseSerialized,
+        falseSerialized
       }: ToggleOptions,
-      mode?: BaseTransitionProps['mode'],
+      mode?: BaseTransitionProps['mode']
     ) {
       const toggle = ref(true)
       const { props, cbs } = mockProps({ mode })
-      const { root } = mount(props, () =>
-        toggle.value ? trueBranch() : falseBranch(),
+      const root = mount(props, () =>
+        toggle.value ? trueBranch() : falseBranch()
       )
 
       // without appear: true, enter hooks should not be called on mount
@@ -309,7 +302,7 @@ describe('BaseTransition', () => {
         onBeforeLeave: 1,
         onLeave: 1,
         onAfterLeave: 1,
-        onLeaveCancelled: 0,
+        onLeaveCancelled: 0
       })
     }
 
@@ -318,7 +311,7 @@ describe('BaseTransition', () => {
         trueBranch: () => h('div'),
         trueSerialized: `<div></div>`,
         falseBranch: () => null,
-        falseSerialized: `<!---->`,
+        falseSerialized: `<!---->`
       })
     })
 
@@ -328,7 +321,7 @@ describe('BaseTransition', () => {
         trueBranch: () => h(Comp, { msg: 'hello' }),
         trueSerialized: `<div>hello</div>`,
         falseBranch: () => null,
-        falseSerialized: `<!---->`,
+        falseSerialized: `<!---->`
       })
     })
 
@@ -338,9 +331,9 @@ describe('BaseTransition', () => {
           trueBranch: () => h('div'),
           trueSerialized: `<div></div>`,
           falseBranch: () => null,
-          falseSerialized: `<!---->`,
+          falseSerialized: `<!---->`
         },
-        'in-out',
+        'in-out'
       )
     })
   })
@@ -350,12 +343,12 @@ describe('BaseTransition', () => {
       trueBranch,
       trueSerialized,
       falseBranch = () => null,
-      falseSerialized = `<!---->`,
+      falseSerialized = `<!---->`
     }: ToggleOptions) {
       const toggle = ref(false)
       const { props, cbs } = mockProps()
-      const { root } = mount(props, () =>
-        toggle.value ? trueBranch() : falseBranch(),
+      const root = mount(props, () =>
+        toggle.value ? trueBranch() : falseBranch()
       )
 
       // start enter
@@ -402,7 +395,7 @@ describe('BaseTransition', () => {
         onBeforeLeave: 1,
         onLeave: 1,
         onAfterLeave: 1,
-        onLeaveCancelled: 0,
+        onLeaveCancelled: 0
       })
     }
 
@@ -411,7 +404,7 @@ describe('BaseTransition', () => {
         trueBranch: () => h('div'),
         trueSerialized: `<div></div>`,
         falseBranch: () => null,
-        falseSerialized: `<!---->`,
+        falseSerialized: `<!---->`
       })
     })
 
@@ -421,7 +414,7 @@ describe('BaseTransition', () => {
         trueBranch: () => h(Comp, { msg: 'hello' }),
         trueSerialized: `<div>hello</div>`,
         falseBranch: () => null,
-        falseSerialized: `<!---->`,
+        falseSerialized: `<!---->`
       })
     })
   })
@@ -432,16 +425,16 @@ describe('BaseTransition', () => {
         trueBranch,
         falseBranch,
         trueSerialized,
-        falseSerialized,
+        falseSerialized
       }: ToggleOptions,
-      withKeepAlive = false,
+      withKeepAlive = false
     ) {
       const toggle = ref(true)
       const { props, cbs } = mockProps({}, withKeepAlive)
-      const { root } = mount(
+      const root = mount(
         props,
         () => (toggle.value ? trueBranch() : falseBranch()),
-        withKeepAlive,
+        withKeepAlive
       )
 
       // without appear: true, enter hooks should not be called on mount
@@ -515,7 +508,7 @@ describe('BaseTransition', () => {
         onLeave: 2,
         onAfterLeave: 2,
         onEnterCancelled: 0,
-        onLeaveCancelled: 0,
+        onLeaveCancelled: 0
       })
     }
 
@@ -538,16 +531,16 @@ describe('BaseTransition', () => {
         trueBranch,
         falseBranch,
         trueSerialized,
-        falseSerialized,
+        falseSerialized
       }: ToggleOptions,
-      withKeepAlive = false,
+      withKeepAlive = false
     ) {
       const toggle = ref(true)
       const { props, cbs } = mockProps({}, withKeepAlive)
-      const { root } = mount(
+      const root = mount(
         props,
         () => (toggle.value ? trueBranch() : falseBranch()),
-        withKeepAlive,
+        withKeepAlive
       )
 
       // start toggle
@@ -648,7 +641,7 @@ describe('BaseTransition', () => {
         onBeforeLeave: 3,
         onLeave: 3,
         onAfterLeave: withKeepAlive ? 1 : 3,
-        onLeaveCancelled: withKeepAlive ? 2 : 0,
+        onLeaveCancelled: withKeepAlive ? 2 : 0
       })
     }
 
@@ -671,16 +664,16 @@ describe('BaseTransition', () => {
         trueBranch,
         falseBranch,
         trueSerialized,
-        falseSerialized,
+        falseSerialized
       }: ToggleOptions,
-      withKeepAlive = false,
+      withKeepAlive = false
     ) {
       const toggle = ref(true)
       const { props, cbs } = mockProps({ mode: 'out-in' }, withKeepAlive)
-      const { root } = mount(
+      const root = mount(
         props,
         () => (toggle.value ? trueBranch() : falseBranch()),
-        withKeepAlive,
+        withKeepAlive
       )
 
       // trigger toggle
@@ -753,89 +746,7 @@ describe('BaseTransition', () => {
         onBeforeLeave: 2,
         onLeave: 2,
         onAfterLeave: 2,
-        onLeaveCancelled: 0,
-      })
-    }
-
-    test('w/ elements', async () => {
-      await runTestWithElements(testOutIn)
-    })
-
-    test('w/ components', async () => {
-      await runTestWithComponents(testOutIn)
-    })
-
-    test('w/ KeepAlive', async () => {
-      await runTestWithKeepAlive(testOutIn)
-    })
-  })
-
-  // #6835
-  describe('mode: "out-in" toggle again after unmounted', () => {
-    async function testOutIn(
-      {
-        trueBranch,
-        falseBranch,
-        trueSerialized,
-        falseSerialized,
-      }: ToggleOptions,
-      withKeepAlive = false,
-    ) {
-      const toggle = ref(true)
-      const { props, cbs } = mockProps({ mode: 'out-in' }, withKeepAlive)
-      const { root, unmount } = mount(
-        props,
-        () => (toggle.value ? trueBranch() : falseBranch()),
-        withKeepAlive,
-      )
-
-      // trigger toggle
-      toggle.value = false
-      await nextTick()
-      // a placeholder is injected until the leave finishes
-      expect(serializeInner(root)).toBe(`${trueSerialized}<!---->`)
-      expect(props.onBeforeLeave).toHaveBeenCalledTimes(1)
-      assertCalledWithEl(props.onBeforeLeave, trueSerialized)
-      expect(props.onLeave).toHaveBeenCalledTimes(1)
-      assertCalledWithEl(props.onLeave, trueSerialized)
-      expect(props.onAfterLeave).not.toHaveBeenCalled()
-      // enter should not have started
-      expect(props.onBeforeEnter).not.toHaveBeenCalled()
-      expect(props.onEnter).not.toHaveBeenCalled()
-      expect(props.onAfterEnter).not.toHaveBeenCalled()
-
-      cbs.doneLeave[trueSerialized]()
-      expect(props.onAfterLeave).toHaveBeenCalledTimes(1)
-      assertCalledWithEl(props.onAfterLeave, trueSerialized)
-      // have to wait for a tick because this triggers an update
-      await nextTick()
-      expect(serializeInner(root)).toBe(falseSerialized)
-      // enter should start
-      expect(props.onBeforeEnter).toHaveBeenCalledTimes(1)
-      assertCalledWithEl(props.onBeforeEnter, falseSerialized)
-      expect(props.onEnter).toHaveBeenCalledTimes(1)
-      assertCalledWithEl(props.onEnter, falseSerialized)
-      expect(props.onAfterEnter).not.toHaveBeenCalled()
-      // finish enter
-      cbs.doneEnter[falseSerialized]()
-      expect(props.onAfterEnter).toHaveBeenCalledTimes(1)
-      assertCalledWithEl(props.onAfterEnter, falseSerialized)
-
-      unmount()
-      // toggle again after unmounted should not throw error
-      toggle.value = true
-      await nextTick()
-      expect(serializeInner(root)).toBe(`<!---->`)
-
-      assertCalls(props, {
-        onBeforeEnter: 1,
-        onEnter: 1,
-        onAfterEnter: 1,
-        onEnterCancelled: 0,
-        onBeforeLeave: 1,
-        onLeave: 1,
-        onAfterLeave: 1,
-        onLeaveCancelled: 0,
+        onLeaveCancelled: 0
       })
     }
 
@@ -855,14 +766,14 @@ describe('BaseTransition', () => {
   describe('mode: "out-in" toggle before finish', () => {
     async function testOutInBeforeFinish(
       { trueBranch, falseBranch, trueSerialized }: ToggleOptions,
-      withKeepAlive = false,
+      withKeepAlive = false
     ) {
       const toggle = ref(true)
       const { props, cbs } = mockProps({ mode: 'out-in' }, withKeepAlive)
-      const { root } = mount(
+      const root = mount(
         props,
         () => (toggle.value ? trueBranch() : falseBranch()),
-        withKeepAlive,
+        withKeepAlive
       )
 
       // trigger toggle
@@ -907,7 +818,7 @@ describe('BaseTransition', () => {
         onBeforeLeave: 1,
         onLeave: 1,
         onAfterLeave: 1,
-        onLeaveCancelled: 0,
+        onLeaveCancelled: 0
       })
     }
 
@@ -930,16 +841,16 @@ describe('BaseTransition', () => {
         trueBranch,
         falseBranch,
         trueSerialized,
-        falseSerialized,
+        falseSerialized
       }: ToggleOptions,
-      withKeepAlive = false,
+      withKeepAlive = false
     ) {
       const toggle = ref(true)
       const { props, cbs } = mockProps({ mode: 'out-in' }, withKeepAlive)
-      const { root } = mount(
+      const root = mount(
         props,
         () => (toggle.value ? trueBranch() : falseBranch()),
-        withKeepAlive,
+        withKeepAlive
       )
 
       // double quick toggle
@@ -985,7 +896,7 @@ describe('BaseTransition', () => {
         onBeforeLeave: 1,
         onLeave: 1,
         onAfterLeave: 1,
-        onLeaveCancelled: 0,
+        onLeaveCancelled: 0
       })
     }
 
@@ -1008,16 +919,16 @@ describe('BaseTransition', () => {
         trueBranch,
         falseBranch,
         trueSerialized,
-        falseSerialized,
+        falseSerialized
       }: ToggleOptions,
-      withKeepAlive = false,
+      withKeepAlive = false
     ) {
       const toggle = ref(true)
       const { props, cbs } = mockProps({ mode: 'in-out' }, withKeepAlive)
-      const { root } = mount(
+      const root = mount(
         props,
         () => (toggle.value ? trueBranch() : falseBranch()),
-        withKeepAlive,
+        withKeepAlive
       )
 
       toggle.value = false
@@ -1089,7 +1000,7 @@ describe('BaseTransition', () => {
         onBeforeLeave: 2,
         onLeave: 2,
         onAfterLeave: 2,
-        onLeaveCancelled: 0,
+        onLeaveCancelled: 0
       })
     }
 
@@ -1112,16 +1023,16 @@ describe('BaseTransition', () => {
         trueBranch,
         falseBranch,
         trueSerialized,
-        falseSerialized,
+        falseSerialized
       }: ToggleOptions,
-      withKeepAlive = false,
+      withKeepAlive = false
     ) {
       const toggle = ref(true)
       const { props, cbs } = mockProps({ mode: 'in-out' }, withKeepAlive)
-      const { root } = mount(
+      const root = mount(
         props,
         () => (toggle.value ? trueBranch() : falseBranch()),
-        withKeepAlive,
+        withKeepAlive
       )
 
       toggle.value = false
@@ -1177,7 +1088,7 @@ describe('BaseTransition', () => {
         onBeforeLeave: 1,
         onLeave: 1,
         onAfterLeave: 1,
-        onLeaveCancelled: 0,
+        onLeaveCancelled: 0
       })
     }
 
@@ -1192,10 +1103,5 @@ describe('BaseTransition', () => {
     test('w/ KeepAlive', async () => {
       await runTestWithKeepAlive(testInOutBeforeFinish)
     })
-  })
-
-  // #10719
-  test('should not error on KeepAlive w/ function children', () => {
-    expect(() => mount({}, () => () => h('div'), true)).not.toThrow()
   })
 })

@@ -1,16 +1,18 @@
-import { reactive, ref } from '@vue/reactivity'
+import { ref, reactive } from '@vue/reactivity'
 import {
-  type TestElement,
-  defineComponent,
+  renderToString,
   h,
-  nextTick,
   nodeOps,
   render,
-  renderToString,
   serializeInner,
-  triggerEvent,
+  nextTick,
   watchEffect,
+  defineComponent,
+  triggerEvent,
+  TestElement
 } from '@vue/runtime-test'
+
+// reference: https://vue-composition-api-rfc.netlify.com/api.html#setup
 
 describe('api: setup context', () => {
   it('should expose return values to template render context', () => {
@@ -22,12 +24,12 @@ describe('api: setup context', () => {
           // object exposed as-is
           object: reactive({ msg: 'bar' }),
           // primitive value exposed as-is
-          value: 'baz',
+          value: 'baz'
         }
       },
       render() {
         return `${this.ref} ${this.object.msg} ${this.value}`
-      },
+      }
     })
     expect(renderToString(h(Comp))).toMatch(`foo bar baz`)
   })
@@ -38,7 +40,7 @@ describe('api: setup context', () => {
         return () => {
           return h('div', 'hello')
         }
-      },
+      }
     }
     expect(renderToString(h(Comp))).toMatch(`hello`)
   })
@@ -48,7 +50,7 @@ describe('api: setup context', () => {
     let dummy
 
     const Parent = {
-      render: () => h(Child, { count: count.value }),
+      render: () => h(Child, { count: count.value })
     }
 
     const Child = defineComponent({
@@ -58,7 +60,7 @@ describe('api: setup context', () => {
           dummy = props.count
         })
         return () => h('div', props.count)
-      },
+      }
     })
 
     const root = nodeOps.createElement('div')
@@ -77,7 +79,7 @@ describe('api: setup context', () => {
     const toggle = ref(true)
 
     const Parent = {
-      render: () => h(Child, toggle.value ? { id: 'foo' } : { class: 'baz' }),
+      render: () => h(Child, toggle.value ? { id: 'foo' } : { class: 'baz' })
     }
 
     const Child = {
@@ -87,7 +89,7 @@ describe('api: setup context', () => {
       inheritAttrs: false,
       setup(props: any, { attrs }: any) {
         return () => h('div', attrs)
-      },
+      }
     }
 
     const root = nodeOps.createElement('div')
@@ -105,13 +107,13 @@ describe('api: setup context', () => {
     const toggle = ref(true)
 
     const Parent = {
-      render: () => h(Child, toggle.value ? { id: 'foo' } : { class: 'baz' }),
+      render: () => h(Child, toggle.value ? { id: 'foo' } : { class: 'baz' })
     }
 
     const Wrapper = {
       render(this: any) {
         return this.$slots.default()
-      },
+      }
     }
 
     const Child = {
@@ -120,12 +122,12 @@ describe('api: setup context', () => {
         return () => {
           const vnode = h(Wrapper, null, {
             default: () => [h('div', attrs)],
-            _: 1, // mark stable slots
+            _: 1 // mark stable slots
           })
           vnode.dynamicChildren = [] // force optimized mode
           return vnode
         }
-      },
+      }
     }
 
     const root = nodeOps.createElement('div')
@@ -145,14 +147,14 @@ describe('api: setup context', () => {
       render: () =>
         h(Child, null, {
           foo: () => id.value,
-          bar: () => 'bar',
-        }),
+          bar: () => 'bar'
+        })
     }
 
     const Child = {
       setup(props: any, { slots }: any) {
         return () => h('div', [...slots.foo(), ...slots.bar()])
-      },
+      }
     }
 
     const root = nodeOps.createElement('div')
@@ -167,7 +169,7 @@ describe('api: setup context', () => {
 
   it('context.emit', async () => {
     const count = ref(0)
-    const spy = vi.fn()
+    const spy = jest.fn()
 
     const Parent = {
       render: () =>
@@ -176,27 +178,27 @@ describe('api: setup context', () => {
           onInc: (newVal: number) => {
             spy()
             count.value = newVal
-          },
-        }),
+          }
+        })
     }
 
     const Child = defineComponent({
       props: {
         count: {
           type: Number,
-          default: 1,
-        },
+          default: 1
+        }
       },
       setup(props, { emit }) {
         return () =>
           h(
             'div',
             {
-              onClick: () => emit('inc', props.count + 1),
+              onClick: () => emit('inc', props.count + 1)
             },
-            props.count,
+            props.count
           )
-      },
+      }
     })
 
     const root = nodeOps.createElement('div')

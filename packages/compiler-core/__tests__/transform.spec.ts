@@ -1,24 +1,25 @@
-import { baseParse } from '../src/parser'
-import { type NodeTransform, transform } from '../src/transform'
+import { baseParse } from '../src/parse'
+import { transform, NodeTransform } from '../src/transform'
 import {
-  type DirectiveNode,
-  type ElementNode,
-  type ExpressionNode,
+  ElementNode,
   NodeTypes,
-  type VNodeCall,
+  DirectiveNode,
+  ExpressionNode,
+  VNodeCall
 } from '../src/ast'
 import { ErrorCodes, createCompilerError } from '../src/errors'
 import {
-  CREATE_COMMENT,
+  TO_DISPLAY_STRING,
   FRAGMENT,
   RENDER_SLOT,
-  TO_DISPLAY_STRING,
+  CREATE_COMMENT
 } from '../src/runtimeHelpers'
 import { transformIf } from '../src/transforms/vIf'
 import { transformFor } from '../src/transforms/vFor'
 import { transformElement } from '../src/transforms/transformElement'
 import { transformSlotOutlet } from '../src/transforms/transformSlotOutlet'
 import { transformText } from '../src/transforms/transformText'
+import { genFlagText } from './testUtils'
 import { PatchFlags } from '@vue/shared'
 
 describe('compiler: transform', () => {
@@ -33,7 +34,7 @@ describe('compiler: transform', () => {
     }
 
     transform(ast, {
-      nodeTransforms: [plugin],
+      nodeTransforms: [plugin]
     })
 
     const div = ast.children[0] as ElementNode
@@ -42,29 +43,29 @@ describe('compiler: transform', () => {
       ast,
       {
         parent: null,
-        currentNode: ast,
-      },
+        currentNode: ast
+      }
     ])
     expect(calls[1]).toMatchObject([
       div,
       {
         parent: ast,
-        currentNode: div,
-      },
+        currentNode: div
+      }
     ])
     expect(calls[2]).toMatchObject([
       div.children[0],
       {
         parent: div,
-        currentNode: div.children[0],
-      },
+        currentNode: div.children[0]
+      }
     ])
     expect(calls[3]).toMatchObject([
       div.children[1],
       {
         parent: div,
-        currentNode: div.children[1],
-      },
+        currentNode: div.children[1]
+      }
     ])
   })
 
@@ -80,16 +81,16 @@ describe('compiler: transform', () => {
               {
                 type: NodeTypes.TEXT,
                 content: 'hello',
-                isEmpty: false,
-              },
-            ],
-          }),
+                isEmpty: false
+              }
+            ]
+          })
         )
       }
     }
-    const spy = vi.fn(plugin)
+    const spy = jest.fn(plugin)
     transform(ast, {
-      nodeTransforms: [spy],
+      nodeTransforms: [spy]
     })
 
     expect(ast.children.length).toBe(2)
@@ -112,9 +113,9 @@ describe('compiler: transform', () => {
         context.removeNode()
       }
     }
-    const spy = vi.fn(plugin)
+    const spy = jest.fn(plugin)
     transform(ast, {
-      nodeTransforms: [spy],
+      nodeTransforms: [spy]
     })
 
     expect(ast.children.length).toBe(2)
@@ -140,9 +141,9 @@ describe('compiler: transform', () => {
         context.removeNode(context.parent!.children[0])
       }
     }
-    const spy = vi.fn(plugin)
+    const spy = jest.fn(plugin)
     transform(ast, {
-      nodeTransforms: [spy],
+      nodeTransforms: [spy]
     })
 
     expect(ast.children.length).toBe(1)
@@ -167,9 +168,9 @@ describe('compiler: transform', () => {
         context.removeNode(context.parent!.children[1])
       }
     }
-    const spy = vi.fn(plugin)
+    const spy = jest.fn(plugin)
     transform(ast, {
-      nodeTransforms: [spy],
+      nodeTransforms: [spy]
     })
 
     expect(ast.children.length).toBe(1)
@@ -193,31 +194,11 @@ describe('compiler: transform', () => {
       }
     }
     transform(ast, {
-      nodeTransforms: [mock],
+      nodeTransforms: [mock]
     })
     expect(ast.hoists).toMatchObject(hoisted)
     expect((ast as any).children[0].props[0].exp.content).toBe(`_hoisted_1`)
     expect((ast as any).children[1].props[0].exp.content).toBe(`_hoisted_2`)
-  })
-
-  test('context.filename and selfName', () => {
-    const ast = baseParse(`<div />`)
-
-    const calls: any[] = []
-    const plugin: NodeTransform = (node, context) => {
-      calls.push({ ...context })
-    }
-
-    transform(ast, {
-      filename: '/the/fileName.vue',
-      nodeTransforms: [plugin],
-    })
-
-    expect(calls.length).toBe(2)
-    expect(calls[1]).toMatchObject({
-      filename: '/the/fileName.vue',
-      selfName: 'FileName',
-    })
   })
 
   test('onError option', () => {
@@ -225,19 +206,19 @@ describe('compiler: transform', () => {
     const loc = ast.children[0].loc
     const plugin: NodeTransform = (node, context) => {
       context.onError(
-        createCompilerError(ErrorCodes.X_INVALID_END_TAG, node.loc),
+        createCompilerError(ErrorCodes.X_INVALID_END_TAG, node.loc)
       )
     }
-    const spy = vi.fn()
+    const spy = jest.fn()
     transform(ast, {
       nodeTransforms: [plugin],
-      onError: spy,
+      onError: spy
     })
     expect(spy.mock.calls[0]).toMatchObject([
       {
         code: ErrorCodes.X_INVALID_END_TAG,
-        loc,
-      },
+        loc
+      }
     ])
   })
 
@@ -262,8 +243,8 @@ describe('compiler: transform', () => {
           transformFor,
           transformText,
           transformSlotOutlet,
-          transformElement,
-        ],
+          transformElement
+        ]
       })
       return ast
     }
@@ -272,7 +253,7 @@ describe('compiler: transform', () => {
       tag: VNodeCall['tag'],
       props?: VNodeCall['props'],
       children?: VNodeCall['children'],
-      patchFlag?: VNodeCall['patchFlag'],
+      patchFlag?: VNodeCall['patchFlag']
     ) {
       return {
         type: NodeTypes.VNODE_CALL,
@@ -280,7 +261,7 @@ describe('compiler: transform', () => {
         tag,
         props,
         children,
-        patchFlag,
+        patchFlag
       }
     }
 
@@ -294,8 +275,8 @@ describe('compiler: transform', () => {
       expect(ast.codegenNode).toMatchObject({
         codegenNode: {
           type: NodeTypes.JS_CALL_EXPRESSION,
-          callee: RENDER_SLOT,
-        },
+          callee: RENDER_SLOT
+        }
       })
     })
 
@@ -307,14 +288,14 @@ describe('compiler: transform', () => {
     test('root v-if', () => {
       const ast = transformWithCodegen(`<div v-if="ok" />`)
       expect(ast.codegenNode).toMatchObject({
-        type: NodeTypes.IF,
+        type: NodeTypes.IF
       })
     })
 
     test('root v-for', () => {
       const ast = transformWithCodegen(`<div v-for="i in list" />`)
       expect(ast.codegenNode).toMatchObject({
-        type: NodeTypes.FOR,
+        type: NodeTypes.FOR
       })
     })
 
@@ -322,28 +303,28 @@ describe('compiler: transform', () => {
       const ast = transformWithCodegen(`<div v-foo/>`)
       expect(ast.codegenNode).toMatchObject({
         type: NodeTypes.VNODE_CALL,
-        directives: { type: NodeTypes.JS_ARRAY_EXPRESSION },
+        directives: { type: NodeTypes.JS_ARRAY_EXPRESSION }
       })
     })
 
     test('single text', () => {
       const ast = transformWithCodegen(`hello`)
       expect(ast.codegenNode).toMatchObject({
-        type: NodeTypes.TEXT,
+        type: NodeTypes.TEXT
       })
     })
 
     test('single interpolation', () => {
       const ast = transformWithCodegen(`{{ foo }}`)
       expect(ast.codegenNode).toMatchObject({
-        type: NodeTypes.INTERPOLATION,
+        type: NodeTypes.INTERPOLATION
       })
     })
 
     test('single CompoundExpression', () => {
       const ast = transformWithCodegen(`{{ foo }} bar baz`)
       expect(ast.codegenNode).toMatchObject({
-        type: NodeTypes.COMPOUND_EXPRESSION,
+        type: NodeTypes.COMPOUND_EXPRESSION
       })
     })
 
@@ -355,10 +336,10 @@ describe('compiler: transform', () => {
           undefined,
           [
             { type: NodeTypes.ELEMENT, tag: `div` },
-            { type: NodeTypes.ELEMENT, tag: `div` },
+            { type: NodeTypes.ELEMENT, tag: `div` }
           ] as any,
-          PatchFlags.STABLE_FRAGMENT,
-        ),
+          genFlagText(PatchFlags.STABLE_FRAGMENT)
+        )
       )
     })
 
@@ -371,10 +352,13 @@ describe('compiler: transform', () => {
           [
             { type: NodeTypes.COMMENT },
             { type: NodeTypes.ELEMENT, tag: `div` },
-            { type: NodeTypes.COMMENT },
+            { type: NodeTypes.COMMENT }
           ] as any,
-          PatchFlags.STABLE_FRAGMENT | PatchFlags.DEV_ROOT_FRAGMENT,
-        ),
+          genFlagText([
+            PatchFlags.STABLE_FRAGMENT,
+            PatchFlags.DEV_ROOT_FRAGMENT
+          ])
+        )
       )
     })
   })

@@ -1,8 +1,5 @@
 /* eslint-disable no-restricted-globals */
-import {
-  type ComponentInternalInstance,
-  formatComponentName,
-} from './component'
+import { ComponentInternalInstance, formatComponentName } from './component'
 import { devtoolsPerfEnd, devtoolsPerfStart } from './devtools'
 
 let supported: boolean
@@ -10,8 +7,8 @@ let perf: Performance
 
 export function startMeasure(
   instance: ComponentInternalInstance,
-  type: string,
-): void {
+  type: string
+) {
   if (instance.appContext.config.performance && isSupported()) {
     perf.mark(`vue-${type}-${instance.uid}`)
   }
@@ -21,10 +18,7 @@ export function startMeasure(
   }
 }
 
-export function endMeasure(
-  instance: ComponentInternalInstance,
-  type: string,
-): void {
+export function endMeasure(instance: ComponentInternalInstance, type: string) {
   if (instance.appContext.config.performance && isSupported()) {
     const startTag = `vue-${type}-${instance.uid}`
     const endTag = startTag + `:end`
@@ -32,7 +26,7 @@ export function endMeasure(
     perf.measure(
       `<${formatComponentName(instance, instance.type)}> ${type}`,
       startTag,
-      endTag,
+      endTag
     )
     perf.clearMarks(startTag)
     perf.clearMarks(endTag)

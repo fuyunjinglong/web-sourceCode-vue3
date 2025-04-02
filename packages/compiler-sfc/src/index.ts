@@ -1,27 +1,14 @@
-export const version: string = __VERSION__
-
 // API
 export { parse } from './parse'
 export { compileTemplate } from './compileTemplate'
 export { compileStyle, compileStyleAsync } from './compileStyle'
 export { compileScript } from './compileScript'
-export { rewriteDefault, rewriteDefaultAST } from './rewriteDefault'
-export { resolveTypeElements, inferRuntimeType } from './script/resolveType'
-
-import { type SFCParseResult, parseCache as _parseCache } from './parse'
-// #9521 export parseCache as a simple map to avoid exposing LRU types
-export const parseCache = _parseCache as Map<string, SFCParseResult>
-
-// error messages
-import {
-  DOMErrorMessages,
-  errorMessages as coreErrorMessages,
-} from '@vue/compiler-dom'
-
-export const errorMessages: Record<number, string> = {
-  ...coreErrorMessages,
-  ...DOMErrorMessages,
-}
+export { rewriteDefault } from './rewriteDefault'
+export {
+  shouldTransform as shouldTransformRef,
+  transform as transformRef,
+  transformAST as transformRefAST
+} from '@vue/reactivity-transform'
 
 // Utilities
 export { parse as babelParse } from '@babel/parser'
@@ -36,54 +23,33 @@ export {
   walkIdentifiers,
   extractIdentifiers,
   isInDestructureAssignment,
-  isStaticProperty,
+  isStaticProperty
 } from '@vue/compiler-core'
 
-// Internals for type resolution
-export { invalidateTypeCache, registerTS } from './script/resolveType'
-export { extractRuntimeProps } from './script/defineProps'
-export { extractRuntimeEmits } from './script/defineEmits'
-
 // Types
-export type {
+export {
   SFCParseOptions,
   SFCParseResult,
   SFCDescriptor,
   SFCBlock,
   SFCTemplateBlock,
   SFCScriptBlock,
-  SFCStyleBlock,
+  SFCStyleBlock
 } from './parse'
-export type {
+export {
   TemplateCompiler,
   SFCTemplateCompileOptions,
-  SFCTemplateCompileResults,
+  SFCTemplateCompileResults
 } from './compileTemplate'
-export type {
+export {
   SFCStyleCompileOptions,
   SFCAsyncStyleCompileOptions,
-  SFCStyleCompileResults,
+  SFCStyleCompileResults
 } from './compileStyle'
-export type { SFCScriptCompileOptions } from './compileScript'
-export type { ScriptCompileContext } from './script/context'
-export type {
-  TypeResolveContext,
-  SimpleTypeResolveOptions,
-  SimpleTypeResolveContext,
-} from './script/resolveType'
-export type {
-  AssetURLOptions,
-  AssetURLTagConfig,
-} from './template/transformAssetUrl'
-export type {
+export { SFCScriptCompileOptions } from './compileScript'
+export { AssetURLOptions, AssetURLTagConfig } from './templateTransformAssetUrl'
+export {
   CompilerOptions,
   CompilerError,
-  BindingMetadata,
+  BindingMetadata
 } from '@vue/compiler-core'
-
-/**
- * @deprecated this is preserved to avoid breaking vite-plugin-vue < 5.0
- * with reactivityTransform: true. The desired behavior should be silently
- * ignoring the option instead of breaking.
- */
-export const shouldTransformRef = () => false

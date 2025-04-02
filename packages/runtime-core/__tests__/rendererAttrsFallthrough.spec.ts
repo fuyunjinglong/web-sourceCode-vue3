@@ -1,33 +1,25 @@
-/**
- * @vitest-environment jsdom
- */
 // using DOM renderer because this case is mostly DOM-specific
-
 import {
-  Fragment,
-  type FunctionalComponent,
-  Teleport,
-  createBlock,
-  createCommentVNode,
-  createElementBlock,
-  createElementVNode,
-  defineComponent,
   h,
-  mergeProps,
-  nextTick,
-  onUpdated,
-  openBlock,
-  ref,
   render,
-  withModifiers,
+  nextTick,
+  mergeProps,
+  ref,
+  onUpdated,
+  defineComponent,
+  openBlock,
+  createBlock,
+  FunctionalComponent,
+  createCommentVNode,
+  Fragment,
+  withModifiers
 } from '@vue/runtime-dom'
-import { createApp } from 'vue'
-import { PatchFlags } from '@vue/shared'
+import { PatchFlags } from '@vue/shared/src'
 
 describe('attribute fallthrough', () => {
   it('should allow attrs to fallthrough', async () => {
-    const click = vi.fn()
-    const childUpdated = vi.fn()
+    const click = jest.fn()
+    const childUpdated = jest.fn()
 
     const Hello = {
       setup() {
@@ -45,9 +37,9 @@ describe('attribute fallthrough', () => {
             class: 'c' + count.value,
             style: { color: count.value ? 'red' : 'green' },
             onClick: inc,
-            'data-id': count.value + 1,
+            'data-id': count.value + 1
           })
-      },
+      }
     }
 
     const Child = {
@@ -58,11 +50,11 @@ describe('attribute fallthrough', () => {
             'div',
             {
               class: 'c2',
-              style: { fontWeight: 'bold' },
+              style: { fontWeight: 'bold' }
             },
-            props.foo,
+            props.foo
           )
-      },
+      }
     }
 
     const root = document.createElement('div')
@@ -91,8 +83,8 @@ describe('attribute fallthrough', () => {
   })
 
   it('should only allow whitelisted fallthrough on functional component with optional props', async () => {
-    const click = vi.fn()
-    const childUpdated = vi.fn()
+    const click = jest.fn()
+    const childUpdated = jest.fn()
 
     const count = ref(0)
 
@@ -107,7 +99,7 @@ describe('attribute fallthrough', () => {
         id: 'test',
         class: 'c' + count.value,
         style: { color: count.value ? 'red' : 'green' },
-        onClick: inc,
+        onClick: inc
       })
 
     const Child = (props: any) => {
@@ -116,9 +108,9 @@ describe('attribute fallthrough', () => {
         'div',
         {
           class: 'c2',
-          style: { fontWeight: 'bold' },
+          style: { fontWeight: 'bold' }
         },
-        props.foo,
+        props.foo
       )
     }
 
@@ -149,8 +141,8 @@ describe('attribute fallthrough', () => {
   })
 
   it('should allow all attrs on functional component with declared props', async () => {
-    const click = vi.fn()
-    const childUpdated = vi.fn()
+    const click = jest.fn()
+    const childUpdated = jest.fn()
 
     const count = ref(0)
 
@@ -165,7 +157,7 @@ describe('attribute fallthrough', () => {
         id: 'test',
         class: 'c' + count.value,
         style: { color: count.value ? 'red' : 'green' },
-        onClick: inc,
+        onClick: inc
       })
 
     const Child = (props: { foo: number }) => {
@@ -174,9 +166,9 @@ describe('attribute fallthrough', () => {
         'div',
         {
           class: 'c2',
-          style: { fontWeight: 'bold' },
+          style: { fontWeight: 'bold' }
         },
-        props.foo,
+        props.foo
       )
     }
     Child.props = ['foo']
@@ -205,9 +197,9 @@ describe('attribute fallthrough', () => {
   })
 
   it('should fallthrough for nested components', async () => {
-    const click = vi.fn()
-    const childUpdated = vi.fn()
-    const grandChildUpdated = vi.fn()
+    const click = jest.fn()
+    const childUpdated = jest.fn()
+    const grandChildUpdated = jest.fn()
 
     const Hello = {
       setup() {
@@ -224,9 +216,9 @@ describe('attribute fallthrough', () => {
             id: 'test',
             class: 'c' + count.value,
             style: { color: count.value ? 'red' : 'green' },
-            onClick: inc,
+            onClick: inc
           })
-      },
+      }
     }
 
     const Child = {
@@ -236,13 +228,13 @@ describe('attribute fallthrough', () => {
         // this will result in merging the same attrs, but should be deduped by
         // `mergeProps`.
         return () => h(GrandChild, props)
-      },
+      }
     }
 
     const GrandChild = defineComponent({
       props: {
         id: String,
-        foo: Number,
+        foo: Number
       },
       setup(props) {
         onUpdated(grandChildUpdated)
@@ -252,11 +244,11 @@ describe('attribute fallthrough', () => {
             {
               id: props.id,
               class: 'c2',
-              style: { fontWeight: 'bold' },
+              style: { fontWeight: 'bold' }
             },
-            props.foo,
+            props.foo
           )
-      },
+      }
     })
 
     const root = document.createElement('div')
@@ -291,7 +283,7 @@ describe('attribute fallthrough', () => {
     const Parent = {
       render() {
         return h(Child, { foo: 1, class: 'parent' })
-      },
+      }
     }
 
     const Child = defineComponent({
@@ -299,7 +291,7 @@ describe('attribute fallthrough', () => {
       inheritAttrs: false,
       render() {
         return h('div', this.foo)
-      },
+      }
     })
 
     const root = document.createElement('div')
@@ -315,11 +307,11 @@ describe('attribute fallthrough', () => {
     const Parent = {
       render() {
         return h(Child, { foo: 1, class: 'parent' })
-      },
+      }
     }
 
     const mixin = {
-      inheritAttrs: false,
+      inheritAttrs: false
     }
 
     const Child = defineComponent({
@@ -327,7 +319,7 @@ describe('attribute fallthrough', () => {
       props: ['foo'],
       render() {
         return h('div', this.foo)
-      },
+      }
     })
 
     const root = document.createElement('div')
@@ -342,7 +334,7 @@ describe('attribute fallthrough', () => {
     const Parent = {
       render() {
         return h(Child, { foo: 1, class: 'parent' })
-      },
+      }
     }
 
     const Child = defineComponent({
@@ -353,13 +345,13 @@ describe('attribute fallthrough', () => {
           'div',
           mergeProps(
             {
-              class: 'child',
+              class: 'child'
             },
-            this.$attrs,
+            this.$attrs
           ),
-          this.foo,
+          this.foo
         )
-      },
+      }
     })
 
     const root = document.createElement('div')
@@ -374,14 +366,14 @@ describe('attribute fallthrough', () => {
     const Parent = {
       render() {
         return h(Child, { foo: 1, class: 'parent', onBar: () => {} })
-      },
+      }
     }
 
     const Child = defineComponent({
       props: ['foo'],
       render() {
         return [h('div'), h('div')]
-      },
+      }
     })
 
     const root = document.createElement('div')
@@ -392,28 +384,8 @@ describe('attribute fallthrough', () => {
     expect(`Extraneous non-emits event listeners`).toHaveBeenWarned()
   })
 
-  it('should warn when fallthrough fails on teleport root node', () => {
-    const Parent = {
-      render() {
-        return h(Child, { class: 'parent' })
-      },
-    }
-    const root = document.createElement('div')
-
-    const Child = defineComponent({
-      render() {
-        return h(Teleport, { to: root }, h('div'))
-      },
-    })
-
-    document.body.appendChild(root)
-    render(h(Parent), root)
-
-    expect(`Extraneous non-props attributes (class)`).toHaveBeenWarned()
-  })
-
   it('should dedupe same listeners when $attrs is used during render', () => {
-    const click = vi.fn()
+    const click = jest.fn()
     const count = ref(0)
 
     function inc() {
@@ -424,7 +396,7 @@ describe('attribute fallthrough', () => {
     const Parent = {
       render() {
         return h(Child, { onClick: inc })
-      },
+      }
     }
 
     const Child = defineComponent({
@@ -433,12 +405,12 @@ describe('attribute fallthrough', () => {
           'div',
           mergeProps(
             {
-              onClick: withModifiers(() => {}, ['prevent', 'stop']),
+              onClick: withModifiers(() => {}, ['prevent', 'stop'])
             },
-            this.$attrs,
-          ),
+            this.$attrs
+          )
         )
-      },
+      }
     })
 
     const root = document.createElement('div')
@@ -455,14 +427,14 @@ describe('attribute fallthrough', () => {
     const Parent = {
       render() {
         return h(Child, { foo: 1, class: 'parent', onBar: () => {} })
-      },
+      }
     }
 
     const Child = defineComponent({
       props: ['foo'],
       render() {
         return [h('div'), h('div', this.$attrs)]
-      },
+      }
     })
 
     const root = document.createElement('div')
@@ -479,14 +451,14 @@ describe('attribute fallthrough', () => {
     const Parent = {
       render() {
         return h(Child, { foo: 1, class: 'parent', onBar: () => {} })
-      },
+      }
     }
 
     const Child = defineComponent({
       props: ['foo'],
       setup(_props, { attrs }) {
         return () => [h('div'), h('div', attrs)]
-      },
+      }
     })
 
     const root = document.createElement('div')
@@ -503,12 +475,12 @@ describe('attribute fallthrough', () => {
     const Parent = {
       render() {
         return h(Child, { foo: 1, class: 'parent', onBar: () => {} })
-      },
+      }
     }
 
     const Child: FunctionalComponent = (_, { attrs }) => [
       h('div'),
-      h('div', attrs),
+      h('div', attrs)
     ]
 
     Child.props = ['foo']
@@ -526,7 +498,7 @@ describe('attribute fallthrough', () => {
     const Parent = {
       render() {
         return h(Child, { foo: 1, class: 'parent', onBar: () => {} })
-      },
+      }
     }
 
     const Child = (props: any) => [h('div'), h('div', { class: props.class })]
@@ -544,7 +516,7 @@ describe('attribute fallthrough', () => {
     const Parent = {
       render() {
         return h(Child, { foo: 1, class: 'parent', onBar: () => {} })
-      },
+      }
     }
 
     const Child: FunctionalComponent = () => [h('div'), h('div')]
@@ -567,14 +539,14 @@ describe('attribute fallthrough', () => {
     const Parent = {
       render() {
         return h(Child, { 'aria-hidden': aria.value, class: cls.value })
-      },
+      }
     }
 
     const Child = {
       props: [],
       render() {
         return openBlock(), createBlock('div')
-      },
+      }
     }
 
     const root = document.createElement('div')
@@ -601,20 +573,20 @@ describe('attribute fallthrough', () => {
           {
             onClick: () => {
               this.$emit('click', 'custom')
-            },
+            }
           },
-          'hello',
+          'hello'
         )
-      },
+      }
     })
 
-    const onClick = vi.fn()
+    const onClick = jest.fn()
     const App = {
       render() {
         return h(Child, {
-          onClick,
+          onClick
         })
-      },
+      }
     }
 
     const root = document.createElement('div')
@@ -634,18 +606,18 @@ describe('attribute fallthrough', () => {
       return h('button', {
         onClick: () => {
           emit('click', 'custom')
-        },
+        }
       })
     }
     Child.emits = ['click']
 
-    const onClick = vi.fn()
+    const onClick = jest.fn()
     const App = {
       render() {
         return h(Child, {
-          onClick,
+          onClick
         })
-      },
+      }
     }
 
     const root = document.createElement('div')
@@ -659,12 +631,12 @@ describe('attribute fallthrough', () => {
   })
 
   it('should support fallthrough for fragments with single element + comments', () => {
-    const click = vi.fn()
+    const click = jest.fn()
 
     const Hello = {
       setup() {
         return () => h(Child, { class: 'foo', onClick: click })
-      },
+      }
     }
 
     const Child = {
@@ -677,12 +649,12 @@ describe('attribute fallthrough', () => {
             [
               createCommentVNode('hello'),
               h('button'),
-              createCommentVNode('world'),
+              createCommentVNode('world')
             ],
-            PatchFlags.STABLE_FRAGMENT | PatchFlags.DEV_ROOT_FRAGMENT,
+            PatchFlags.STABLE_FRAGMENT | PatchFlags.DEV_ROOT_FRAGMENT
           )
         )
-      },
+      }
     }
 
     const root = document.createElement('div')
@@ -690,70 +662,18 @@ describe('attribute fallthrough', () => {
     render(h(Hello), root)
 
     expect(root.innerHTML).toBe(
-      `<!--hello--><button class="foo"></button><!--world-->`,
+      `<!--hello--><button class="foo"></button><!--world-->`
     )
     const button = root.children[0] as HTMLElement
     button.dispatchEvent(new CustomEvent('click'))
     expect(click).toHaveBeenCalled()
   })
 
-  it('should support fallthrough for nested dev root fragments', async () => {
-    const toggle = ref(false)
-
-    const Child = {
-      setup() {
-        return () => (
-          openBlock(),
-          createElementBlock(
-            Fragment,
-            null,
-            [
-              createCommentVNode(' comment A '),
-              toggle.value
-                ? (openBlock(), createElementBlock('span', { key: 0 }, 'Foo'))
-                : (openBlock(),
-                  createElementBlock(
-                    Fragment,
-                    { key: 1 },
-                    [
-                      createCommentVNode(' comment B '),
-                      createElementVNode('div', null, 'Bar'),
-                    ],
-                    PatchFlags.STABLE_FRAGMENT | PatchFlags.DEV_ROOT_FRAGMENT,
-                  )),
-            ],
-            PatchFlags.STABLE_FRAGMENT | PatchFlags.DEV_ROOT_FRAGMENT,
-          )
-        )
-      },
-    }
-
-    const Root = {
-      setup() {
-        return () => (openBlock(), createBlock(Child, { class: 'red' }))
-      },
-    }
-
-    const root = document.createElement('div')
-    document.body.appendChild(root)
-    render(h(Root), root)
-
-    expect(root.innerHTML).toBe(
-      `<!-- comment A --><!-- comment B --><div class="red">Bar</div>`,
-    )
-
-    toggle.value = true
-    await nextTick()
-    expect(root.innerHTML).toBe(
-      `<!-- comment A --><span class=\"red\">Foo</span>`,
-    )
-  })
-
   // #1989
   it('should not fallthrough v-model listeners with corresponding declared prop', () => {
     let textFoo = ''
     let textBar = ''
-    const click = vi.fn()
+    const click = jest.fn()
 
     const App = defineComponent({
       setup() {
@@ -762,9 +682,9 @@ describe('attribute fallthrough', () => {
             modelValue: textFoo,
             'onUpdate:modelValue': (val: string) => {
               textFoo = val
-            },
+            }
           })
-      },
+      }
     })
 
     const Child = defineComponent({
@@ -776,9 +696,9 @@ describe('attribute fallthrough', () => {
             'onUpdate:modelValue': (val: string) => {
               textBar = val
               emit('update:modelValue', 'from Child')
-            },
+            }
           })
-      },
+      }
     })
 
     const GrandChild = defineComponent({
@@ -789,9 +709,9 @@ describe('attribute fallthrough', () => {
             onClick() {
               click()
               emit('update:modelValue', 'from GrandChild')
-            },
+            }
           })
-      },
+      }
     })
 
     const root = document.createElement('div')
@@ -804,32 +724,5 @@ describe('attribute fallthrough', () => {
     expect(click).toHaveBeenCalled()
     expect(textBar).toBe('from GrandChild')
     expect(textFoo).toBe('from Child')
-  })
-
-  // covers uncaught regression #10710
-  it('should track this.$attrs access in slots', async () => {
-    const GrandChild = {
-      template: `<slot/>`,
-    }
-    const Child = {
-      components: { GrandChild },
-      template: `<div><GrandChild>{{ $attrs.foo }}</GrandChild></div>`,
-    }
-
-    const obj = ref(1)
-    const App = {
-      render() {
-        return h(Child, { foo: obj.value })
-      },
-    }
-
-    const root = document.createElement('div')
-    createApp(App).mount(root)
-
-    expect(root.innerHTML).toBe('<div foo="1">1</div>')
-
-    obj.value = 2
-    await nextTick()
-    expect(root.innerHTML).toBe('<div foo="2">2</div>')
   })
 })

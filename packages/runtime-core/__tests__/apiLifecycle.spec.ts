@@ -1,33 +1,29 @@
 import {
-  KeepAlive,
-  TrackOpTypes,
-  h,
-  nextTick,
-  nodeOps,
-  onActivated,
   onBeforeMount,
-  onBeforeUnmount,
-  onBeforeUpdate,
-  onMounted,
-  onRenderTracked,
-  onRenderTriggered,
-  onUnmounted,
-  onUpdated,
-  reactive,
-  ref,
+  h,
+  nodeOps,
   render,
   serializeInner,
+  onMounted,
+  ref,
+  onBeforeUpdate,
+  nextTick,
+  onUpdated,
+  onBeforeUnmount,
+  onUnmounted,
+  onRenderTracked,
+  reactive,
+  TrackOpTypes,
+  onRenderTriggered
 } from '@vue/runtime-test'
-import {
-  type DebuggerEvent,
-  ITERATE_KEY,
-  TriggerOpTypes,
-} from '@vue/reactivity'
+import { ITERATE_KEY, DebuggerEvent, TriggerOpTypes } from '@vue/reactivity'
+
+// reference: https://vue-composition-api-rfc.netlify.com/api.html#lifecycle-hooks
 
 describe('api: lifecycle hooks', () => {
   it('onBeforeMount', () => {
     const root = nodeOps.createElement('div')
-    const fn = vi.fn(() => {
+    const fn = jest.fn(() => {
       // should be called before inner div is rendered
       expect(serializeInner(root)).toBe(``)
     })
@@ -36,17 +32,15 @@ describe('api: lifecycle hooks', () => {
       setup() {
         onBeforeMount(fn)
         return () => h('div')
-      },
+      }
     }
     render(h(Comp), root)
     expect(fn).toHaveBeenCalledTimes(1)
-    // #10863
-    expect(fn).toHaveBeenCalledWith()
   })
 
   it('onMounted', () => {
     const root = nodeOps.createElement('div')
-    const fn = vi.fn(() => {
+    const fn = jest.fn(() => {
       // should be called after inner div is rendered
       expect(serializeInner(root)).toBe(`<div></div>`)
     })
@@ -55,7 +49,7 @@ describe('api: lifecycle hooks', () => {
       setup() {
         onMounted(fn)
         return () => h('div')
-      },
+      }
     }
     render(h(Comp), root)
     expect(fn).toHaveBeenCalledTimes(1)
@@ -64,7 +58,7 @@ describe('api: lifecycle hooks', () => {
   it('onBeforeUpdate', async () => {
     const count = ref(0)
     const root = nodeOps.createElement('div')
-    const fn = vi.fn(() => {
+    const fn = jest.fn(() => {
       // should be called before inner div is updated
       expect(serializeInner(root)).toBe(`<div>0</div>`)
     })
@@ -73,7 +67,7 @@ describe('api: lifecycle hooks', () => {
       setup() {
         onBeforeUpdate(fn)
         return () => h('div', count.value)
-      },
+      }
     }
     render(h(Comp), root)
 
@@ -86,12 +80,12 @@ describe('api: lifecycle hooks', () => {
   it('state mutation in onBeforeUpdate', async () => {
     const count = ref(0)
     const root = nodeOps.createElement('div')
-    const fn = vi.fn(() => {
+    const fn = jest.fn(() => {
       // should be called before inner div is updated
       expect(serializeInner(root)).toBe(`<div>0</div>`)
       count.value++
     })
-    const renderSpy = vi.fn()
+    const renderSpy = jest.fn()
 
     const Comp = {
       setup() {
@@ -100,7 +94,7 @@ describe('api: lifecycle hooks', () => {
           renderSpy()
           return h('div', count.value)
         }
-      },
+      }
     }
     render(h(Comp), root)
     expect(renderSpy).toHaveBeenCalledTimes(1)
@@ -115,7 +109,7 @@ describe('api: lifecycle hooks', () => {
   it('onUpdated', async () => {
     const count = ref(0)
     const root = nodeOps.createElement('div')
-    const fn = vi.fn(() => {
+    const fn = jest.fn(() => {
       // should be called after inner div is updated
       expect(serializeInner(root)).toBe(`<div>1</div>`)
     })
@@ -124,7 +118,7 @@ describe('api: lifecycle hooks', () => {
       setup() {
         onUpdated(fn)
         return () => h('div', count.value)
-      },
+      }
     }
     render(h(Comp), root)
 
@@ -136,7 +130,7 @@ describe('api: lifecycle hooks', () => {
   it('onBeforeUnmount', async () => {
     const toggle = ref(true)
     const root = nodeOps.createElement('div')
-    const fn = vi.fn(() => {
+    const fn = jest.fn(() => {
       // should be called before inner div is removed
       expect(serializeInner(root)).toBe(`<div></div>`)
     })
@@ -144,14 +138,14 @@ describe('api: lifecycle hooks', () => {
     const Comp = {
       setup() {
         return () => (toggle.value ? h(Child) : null)
-      },
+      }
     }
 
     const Child = {
       setup() {
         onBeforeUnmount(fn)
         return () => h('div')
-      },
+      }
     }
 
     render(h(Comp), root)
@@ -164,7 +158,7 @@ describe('api: lifecycle hooks', () => {
   it('onUnmounted', async () => {
     const toggle = ref(true)
     const root = nodeOps.createElement('div')
-    const fn = vi.fn(() => {
+    const fn = jest.fn(() => {
       // should be called after inner div is removed
       expect(serializeInner(root)).toBe(`<!---->`)
     })
@@ -172,14 +166,14 @@ describe('api: lifecycle hooks', () => {
     const Comp = {
       setup() {
         return () => (toggle.value ? h(Child) : null)
-      },
+      }
     }
 
     const Child = {
       setup() {
         onUnmounted(fn)
         return () => h('div')
-      },
+      }
     }
 
     render(h(Comp), root)
@@ -192,7 +186,7 @@ describe('api: lifecycle hooks', () => {
   it('onBeforeUnmount in onMounted', async () => {
     const toggle = ref(true)
     const root = nodeOps.createElement('div')
-    const fn = vi.fn(() => {
+    const fn = jest.fn(() => {
       // should be called before inner div is removed
       expect(serializeInner(root)).toBe(`<div></div>`)
     })
@@ -200,7 +194,7 @@ describe('api: lifecycle hooks', () => {
     const Comp = {
       setup() {
         return () => (toggle.value ? h(Child) : null)
-      },
+      }
     }
 
     const Child = {
@@ -209,7 +203,7 @@ describe('api: lifecycle hooks', () => {
           onBeforeUnmount(fn)
         })
         return () => h('div')
-      },
+      }
     }
 
     render(h(Comp), root)
@@ -233,7 +227,7 @@ describe('api: lifecycle hooks', () => {
         onBeforeUnmount(() => calls.push('root onBeforeUnmount'))
         onUnmounted(() => calls.push('root onUnmounted'))
         return () => h(Mid, { count: count.value })
-      },
+      }
     }
 
     const Mid = {
@@ -246,7 +240,7 @@ describe('api: lifecycle hooks', () => {
         onBeforeUnmount(() => calls.push('mid onBeforeUnmount'))
         onUnmounted(() => calls.push('mid onUnmounted'))
         return () => h(Child, { count: props.count })
-      },
+      }
     }
 
     const Child = {
@@ -259,7 +253,7 @@ describe('api: lifecycle hooks', () => {
         onBeforeUnmount(() => calls.push('child onBeforeUnmount'))
         onUnmounted(() => calls.push('child onUnmounted'))
         return () => h('div', props.count)
-      },
+      }
     }
 
     // mount
@@ -270,7 +264,7 @@ describe('api: lifecycle hooks', () => {
       'child onBeforeMount',
       'child onMounted',
       'mid onMounted',
-      'root onMounted',
+      'root onMounted'
     ])
 
     calls.length = 0
@@ -284,7 +278,7 @@ describe('api: lifecycle hooks', () => {
       'child onBeforeUpdate',
       'child onUpdated',
       'mid onUpdated',
-      'root onUpdated',
+      'root onUpdated'
     ])
 
     calls.length = 0
@@ -297,13 +291,13 @@ describe('api: lifecycle hooks', () => {
       'child onBeforeUnmount',
       'child onUnmounted',
       'mid onUnmounted',
-      'root onUnmounted',
+      'root onUnmounted'
     ])
   })
 
   it('onRenderTracked', () => {
     const events: DebuggerEvent[] = []
-    const onTrack = vi.fn((e: DebuggerEvent) => {
+    const onTrack = jest.fn((e: DebuggerEvent) => {
       events.push(e)
     })
     const obj = reactive({ foo: 1, bar: 2 })
@@ -313,7 +307,7 @@ describe('api: lifecycle hooks', () => {
         onRenderTracked(onTrack)
         return () =>
           h('div', [obj.foo, 'bar' in obj, Object.keys(obj).join('')])
-      },
+      }
     }
 
     render(h(Comp), nodeOps.createElement('div'))
@@ -322,24 +316,24 @@ describe('api: lifecycle hooks', () => {
       {
         target: obj,
         type: TrackOpTypes.GET,
-        key: 'foo',
+        key: 'foo'
       },
       {
         target: obj,
         type: TrackOpTypes.HAS,
-        key: 'bar',
+        key: 'bar'
       },
       {
         target: obj,
         type: TrackOpTypes.ITERATE,
-        key: ITERATE_KEY,
-      },
+        key: ITERATE_KEY
+      }
     ])
   })
 
   it('onRenderTriggered', async () => {
     const events: DebuggerEvent[] = []
-    const onTrigger = vi.fn((e: DebuggerEvent) => {
+    const onTrigger = jest.fn((e: DebuggerEvent) => {
       events.push(e)
     })
     const obj = reactive<{
@@ -352,7 +346,7 @@ describe('api: lifecycle hooks', () => {
         onRenderTriggered(onTrigger)
         return () =>
           h('div', [obj.foo, 'bar' in obj, Object.keys(obj).join('')])
-      },
+      }
     }
 
     render(h(Comp), nodeOps.createElement('div'))
@@ -364,7 +358,7 @@ describe('api: lifecycle hooks', () => {
       type: TriggerOpTypes.SET,
       key: 'foo',
       oldValue: 1,
-      newValue: 2,
+      newValue: 2
     })
 
     delete obj.bar
@@ -373,7 +367,7 @@ describe('api: lifecycle hooks', () => {
     expect(events[1]).toMatchObject({
       type: TriggerOpTypes.DELETE,
       key: 'bar',
-      oldValue: 2,
+      oldValue: 2
     })
     ;(obj as any).baz = 3
     await nextTick()
@@ -381,86 +375,7 @@ describe('api: lifecycle hooks', () => {
     expect(events[2]).toMatchObject({
       type: TriggerOpTypes.ADD,
       key: 'baz',
-      newValue: 3,
+      newValue: 3
     })
-  })
-
-  it('runs shared hook fn for each instance', async () => {
-    const fn = vi.fn()
-    const toggle = ref(true)
-    const Comp = {
-      setup() {
-        return () => (toggle.value ? [h(Child), h(Child)] : null)
-      },
-    }
-    const Child = {
-      setup() {
-        onMounted(fn)
-        onBeforeUnmount(fn)
-        return () => h('div')
-      },
-    }
-
-    render(h(Comp), nodeOps.createElement('div'))
-    expect(fn).toHaveBeenCalledTimes(2)
-    toggle.value = false
-    await nextTick()
-    expect(fn).toHaveBeenCalledTimes(4)
-  })
-
-  it('immediately trigger unmount during rendering', async () => {
-    const fn = vi.fn()
-    const toggle = ref(false)
-
-    const Child = {
-      setup() {
-        onMounted(fn)
-        // trigger unmount immediately
-        toggle.value = false
-        return () => h('div')
-      },
-    }
-
-    const Comp = {
-      setup() {
-        return () => (toggle.value ? [h(Child)] : null)
-      },
-    }
-
-    render(h(Comp), nodeOps.createElement('div'))
-
-    toggle.value = true
-    await nextTick()
-    expect(fn).toHaveBeenCalledTimes(0)
-  })
-
-  it('immediately trigger unmount during rendering(with KeepAlive)', async () => {
-    const mountedSpy = vi.fn()
-    const activeSpy = vi.fn()
-    const toggle = ref(false)
-
-    const Child = {
-      setup() {
-        onMounted(mountedSpy)
-        onActivated(activeSpy)
-
-        // trigger unmount immediately
-        toggle.value = false
-        return () => h('div')
-      },
-    }
-
-    const Comp = {
-      setup() {
-        return () => h(KeepAlive, [toggle.value ? h(Child) : null])
-      },
-    }
-
-    render(h(Comp), nodeOps.createElement('div'))
-
-    toggle.value = true
-    await nextTick()
-    expect(mountedSpy).toHaveBeenCalledTimes(0)
-    expect(activeSpy).toHaveBeenCalledTimes(0)
   })
 })

@@ -7,54 +7,52 @@
 // - This transform is only applied in non-browser builds because it relies on
 //   an additional JavaScript parser. In the browser, there is no source-map
 //   support and the code is wrapped in `with (this) { ... }`.
-import type { NodeTransform, TransformContext } from '../transform'
+import { NodeTransform, TransformContext } from '../transform'
 import {
-  type CompoundExpressionNode,
-  ConstantTypes,
-  type ExpressionNode,
   NodeTypes,
-  type SimpleExpressionNode,
-  createCompoundExpression,
   createSimpleExpression,
+  ExpressionNode,
+  SimpleExpressionNode,
+  CompoundExpressionNode,
+  createCompoundExpression,
+  ConstantTypes
 } from '../ast'
 import {
   isInDestructureAssignment,
-  isInNewExpression,
   isStaticProperty,
   isStaticPropertyKey,
-  walkIdentifiers,
+  walkIdentifiers
 } from '../babelUtils'
-import { advancePositionWithClone, findDir, isSimpleIdentifier } from '../utils'
+import { advancePositionWithClone, isSimpleIdentifier } from '../utils'
 import {
-  genPropsAccessExp,
-  hasOwn,
-  isGloballyAllowed,
-  isString,
+  isGloballyWhitelisted,
   makeMap,
+  hasOwn,
+  isString,
+  genPropsAccessExp
 } from '@vue/shared'
-import { ErrorCodes, createCompilerError } from '../errors'
-import type {
-  AssignmentExpression,
-  Identifier,
+import { createCompilerError, ErrorCodes } from '../errors'
+import {
   Node,
-  UpdateExpression,
+  Identifier,
+  AssignmentExpression,
+  UpdateExpression
 } from '@babel/types'
 import { validateBrowserExpression } from '../validateExpression'
-import { parseExpression } from '@babel/parser'
+import { parse } from '@babel/parser'
 import { IS_REF, UNREF } from '../runtimeHelpers'
 import { BindingTypes } from '../options'
 
-const isLiteralWhitelisted = /*@__PURE__*/ makeMap('true,false,null,this')
+const isLiteralWhitelisted = /*#__PURE__*/ makeMap('true,false,null,this')
 
 export const transformExpression: NodeTransform = (node, context) => {
   if (node.type === NodeTypes.INTERPOLATION) {
     node.content = processExpression(
       node.content as SimpleExpressionNode,
-      context,
+      context
     )
   } else if (node.type === NodeTypes.ELEMENT) {
     // handle directives on element
-    const memo = findDir(node, 'memo')
     for (let i = 0; i < node.props.length; i++) {
       const dir = node.props[i]
       // do not process for v-on & v-for since they are special handled
@@ -66,20 +64,13 @@ export const transformExpression: NodeTransform = (node, context) => {
         if (
           exp &&
           exp.type === NodeTypes.SIMPLE_EXPRESSION &&
-          !(dir.name === 'on' && arg) &&
-          // key has been processed in transformFor(vMemo + vFor)
-          !(
-            memo &&
-            arg &&
-            arg.type === NodeTypes.SIMPLE_EXPRESSION &&
-            arg.content === 'key'
-          )
+          !(dir.name === 'on' && arg)
         ) {
           dir.exp = processExpression(
             exp,
             context,
             // slot args must be processed as function params
-            dir.name === 'slot',
+            dir.name === 'slot'
           )
         }
         if (arg && arg.type === NodeTypes.SIMPLE_EXPRESSION && !arg.isStatic) {
@@ -109,7 +100,7 @@ export function processExpression(
   asParams = false,
   // v-on handler values may contain multiple statements
   asRawStatements = false,
-  localVars: Record<string, number> = Object.create(context.identifiers),
+  localVars: Record<string, number> = Object.create(context.identifiers)
 ): ExpressionNode {
   if (__BROWSER__) {
     if (__DEV__) {
@@ -124,11 +115,7 @@ export function processExpression(
   }
 
   const { inline, bindingMetadata } = context
-  const rewriteIdentifier = (
-    raw: string,
-    parent?: Node | null,
-    id?: Identifier,
-  ) => {
+  const rewriteIdentifier = (raw: string, parent?: Node, id?: Identifier) => {
     const type = hasOwn(bindingMetadata, raw) && bindingMetadata[raw]
     if (inline) {
       // x = y
@@ -140,14 +127,9 @@ export function processExpression(
       // ({ x } = y)
       const isDestructureAssignment =
         parent && isInDestructureAssignment(parent, parentStack)
-      const isNewExpression = parent && isInNewExpression(parentStack)
-      const wrapWithUnref = (raw: string) => {
-        const wrapped = `${context.helperString(UNREF)}(${raw})`
-        return isNewExpression ? `(${wrapped})` : wrapped
-      }
 
       if (
-        isConst(type) ||
+        type === BindingTypes.SETUP_CONST ||
         type === BindingTypes.SETUP_REACTIVE_CONST ||
         localVars[raw]
       ) {
@@ -161,7 +143,7 @@ export function processExpression(
         // that assumes the value to be a ref for more efficiency
         return isAssignmentLVal || isUpdateArg || isDestructureAssignment
           ? `${raw}.value`
-          : wrapWithUnref(raw)
+          : `${context.helperString(UNREF)}(${raw})`
       } else if (type === BindingTypes.SETUP_LET) {
         if (isAssignmentLVal) {
           // let binding.
@@ -177,8 +159,8 @@ export function processExpression(
               context,
               false,
               false,
-              knownIds,
-            ),
+              knownIds
+            )
           )
           return `${context.helperString(IS_REF)}(${raw})${
             context.isTS ? ` //@ts-ignore\n` : ``
@@ -204,7 +186,7 @@ export function processExpression(
           // for now
           return raw
         } else {
-          return wrapWithUnref(raw)
+          return `${context.helperString(UNREF)}(${raw})`
         }
       } else if (type === BindingTypes.PROPS) {
         // use __props which is generated by compileScript so in ts mode
@@ -215,10 +197,7 @@ export function processExpression(
         return genPropsAccessExp(bindingMetadata.__propsAliases![raw])
       }
     } else {
-      if (
-        (type && type.startsWith('setup')) ||
-        type === BindingTypes.LITERAL_CONST
-      ) {
+      if (type && type.startsWith('setup')) {
         // setup bindings in non-inline mode
         return `$setup.${raw}`
       } else if (type === BindingTypes.PROPS_ALIASED) {
@@ -234,27 +213,17 @@ export function processExpression(
 
   // fast path if expression is a simple identifier.
   const rawExp = node.content
+  // bail constant on parens (function invocation) and dot (member access)
+  const bailConstant = rawExp.indexOf(`(`) > -1 || rawExp.indexOf('.') > 0
 
-  let ast = node.ast
-
-  if (ast === false) {
-    // ast being false means it has caused an error already during parse phase
-    return node
-  }
-
-  if (ast === null || (!ast && isSimpleIdentifier(rawExp))) {
+  if (isSimpleIdentifier(rawExp)) {
     const isScopeVarReference = context.identifiers[rawExp]
-    const isAllowedGlobal = isGloballyAllowed(rawExp)
+    const isAllowedGlobal = isGloballyWhitelisted(rawExp)
     const isLiteral = isLiteralWhitelisted(rawExp)
-    if (
-      !asParams &&
-      !isScopeVarReference &&
-      !isLiteral &&
-      (!isAllowedGlobal || bindingMetadata[rawExp])
-    ) {
+    if (!asParams && !isScopeVarReference && !isAllowedGlobal && !isLiteral) {
       // const bindings exposed from setup can be skipped for patching but
       // cannot be hoisted to module scope
-      if (isConst(bindingMetadata[rawExp])) {
+      if (bindingMetadata[node.content] === BindingTypes.SETUP_CONST) {
         node.constType = ConstantTypes.CAN_SKIP_PATCH
       }
       node.content = rewriteIdentifier(rawExp)
@@ -262,37 +231,35 @@ export function processExpression(
       if (isLiteral) {
         node.constType = ConstantTypes.CAN_STRINGIFY
       } else {
-        node.constType = ConstantTypes.CAN_CACHE
+        node.constType = ConstantTypes.CAN_HOIST
       }
     }
     return node
   }
 
-  if (!ast) {
-    // exp needs to be parsed differently:
-    // 1. Multiple inline statements (v-on, with presence of `;`): parse as raw
-    //    exp, but make sure to pad with spaces for consistent ranges
-    // 2. Expressions: wrap with parens (for e.g. object expressions)
-    // 3. Function arguments (v-for, v-slot): place in a function argument position
-    const source = asRawStatements
-      ? ` ${rawExp} `
-      : `(${rawExp})${asParams ? `=>{}` : ``}`
-    try {
-      ast = parseExpression(source, {
-        sourceType: 'module',
-        plugins: context.expressionPlugins,
-      })
-    } catch (e: any) {
-      context.onError(
-        createCompilerError(
-          ErrorCodes.X_INVALID_EXPRESSION,
-          node.loc,
-          undefined,
-          e.message,
-        ),
+  let ast: any
+  // exp needs to be parsed differently:
+  // 1. Multiple inline statements (v-on, with presence of `;`): parse as raw
+  //    exp, but make sure to pad with spaces for consistent ranges
+  // 2. Expressions: wrap with parens (for e.g. object expressions)
+  // 3. Function arguments (v-for, v-slot): place in a function argument position
+  const source = asRawStatements
+    ? ` ${rawExp} `
+    : `(${rawExp})${asParams ? `=>{}` : ``}`
+  try {
+    ast = parse(source, {
+      plugins: context.expressionPlugins
+    }).program
+  } catch (e: any) {
+    context.onError(
+      createCompilerError(
+        ErrorCodes.X_INVALID_EXPRESSION,
+        node.loc,
+        undefined,
+        e.message
       )
-      return node
-    }
+    )
+    return node
   }
 
   type QualifiedId = Identifier & PrefixMeta
@@ -323,13 +290,7 @@ export function processExpression(
       } else {
         // The identifier is considered constant unless it's pointing to a
         // local scope variable (a v-for alias, or a v-slot prop)
-        if (
-          !(needPrefix && isLocal) &&
-          (!parent ||
-            (parent.type !== 'CallExpression' &&
-              parent.type !== 'NewExpression' &&
-              parent.type !== 'MemberExpression'))
-        ) {
+        if (!(needPrefix && isLocal) && !bailConstant) {
           ;(node as QualifiedId).isConstant = true
         }
         // also generate sub-expressions for other identifiers for better
@@ -339,7 +300,7 @@ export function processExpression(
     },
     true, // invoke on ALL identifiers
     parentStack,
-    knownIds,
+    knownIds
   )
 
   // We break up the compound expression into an array of strings and sub
@@ -363,14 +324,12 @@ export function processExpression(
         id.name,
         false,
         {
-          start: advancePositionWithClone(node.loc.start, source, start),
-          end: advancePositionWithClone(node.loc.start, source, end),
           source,
+          start: advancePositionWithClone(node.loc.start, source, start),
+          end: advancePositionWithClone(node.loc.start, source, end)
         },
-        id.isConstant
-          ? ConstantTypes.CAN_STRINGIFY
-          : ConstantTypes.NOT_CONSTANT,
-      ),
+        id.isConstant ? ConstantTypes.CAN_STRINGIFY : ConstantTypes.NOT_CONSTANT
+      )
     )
     if (i === ids.length - 1 && end < rawExp.length) {
       children.push(rawExp.slice(end))
@@ -380,10 +339,11 @@ export function processExpression(
   let ret
   if (children.length) {
     ret = createCompoundExpression(children, node.loc)
-    ret.ast = ast
   } else {
     ret = node
-    ret.constType = ConstantTypes.CAN_STRINGIFY
+    ret.constType = bailConstant
+      ? ConstantTypes.NOT_CONSTANT
+      : ConstantTypes.CAN_STRINGIFY
   }
   ret.identifiers = Object.keys(knownIds)
   return ret
@@ -391,7 +351,7 @@ export function processExpression(
 
 function canPrefix(id: Identifier) {
   // skip whitelisted globals
-  if (isGloballyAllowed(id.name)) {
+  if (isGloballyWhitelisted(id.name)) {
     return false
   }
   // special case for webpack compilation
@@ -401,7 +361,7 @@ function canPrefix(id: Identifier) {
   return true
 }
 
-export function stringifyExpression(exp: ExpressionNode | string): string {
+function stringifyExpression(exp: ExpressionNode | string): string {
   if (isString(exp)) {
     return exp
   } else if (exp.type === NodeTypes.SIMPLE_EXPRESSION) {
@@ -411,10 +371,4 @@ export function stringifyExpression(exp: ExpressionNode | string): string {
       .map(stringifyExpression)
       .join('')
   }
-}
-
-function isConst(type: unknown) {
-  return (
-    type === BindingTypes.SETUP_CONST || type === BindingTypes.LITERAL_CONST
-  )
 }

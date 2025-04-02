@@ -1,28 +1,28 @@
 import {
-  type ComponentNode,
-  type ExpressionNode,
-  NodeTypes,
-  createCallExpression,
-  createFunctionExpression,
-  createSimpleExpression,
+  ComponentNode,
   findProp,
+  NodeTypes,
+  createSimpleExpression,
+  createFunctionExpression,
+  createCallExpression,
+  ExpressionNode
 } from '@vue/compiler-dom'
 import {
-  type SSRTransformContext,
-  processChildrenAsStatement,
+  SSRTransformContext,
+  processChildrenAsStatement
 } from '../ssrCodegenTransform'
-import { SSRErrorCodes, createSSRCompilerError } from '../errors'
+import { createSSRCompilerError, SSRErrorCodes } from '../errors'
 import { SSR_RENDER_TELEPORT } from '../runtimeHelpers'
 
 // Note: this is a 2nd-pass codegen transform.
 export function ssrProcessTeleport(
   node: ComponentNode,
-  context: SSRTransformContext,
-): void {
+  context: SSRTransformContext
+) {
   const targetProp = findProp(node, 'to')
   if (!targetProp) {
     context.onError(
-      createSSRCompilerError(SSRErrorCodes.X_SSR_NO_TELEPORT_TARGET, node.loc),
+      createSSRCompilerError(SSRErrorCodes.X_SSR_NO_TELEPORT_TARGET, node.loc)
     )
     return
   }
@@ -38,8 +38,8 @@ export function ssrProcessTeleport(
     context.onError(
       createSSRCompilerError(
         SSRErrorCodes.X_SSR_NO_TELEPORT_TARGET,
-        targetProp.loc,
-      ),
+        targetProp.loc
+      )
     )
     return
   }
@@ -56,7 +56,7 @@ export function ssrProcessTeleport(
     undefined, // Body is added later
     true, // newline
     false, // isSlot
-    node.loc,
+    node.loc
   )
   contentRenderFn.body = processChildrenAsStatement(node, context)
   context.pushStatement(
@@ -65,7 +65,7 @@ export function ssrProcessTeleport(
       contentRenderFn,
       target,
       disabled,
-      `_parent`,
-    ]),
+      `_parent`
+    ])
   )
 }

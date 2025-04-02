@@ -1,23 +1,23 @@
 import { markRaw } from '@vue/reactivity'
 
-export enum TestNodeTypes {
+export const enum NodeTypes {
   TEXT = 'text',
   ELEMENT = 'element',
-  COMMENT = 'comment',
+  COMMENT = 'comment'
 }
 
-export enum NodeOpTypes {
+export const enum NodeOpTypes {
   CREATE = 'create',
   INSERT = 'insert',
   REMOVE = 'remove',
   SET_TEXT = 'setText',
   SET_ELEMENT_TEXT = 'setElementText',
-  PATCH = 'patch',
+  PATCH = 'patch'
 }
 
 export interface TestElement {
   id: number
-  type: TestNodeTypes.ELEMENT
+  type: NodeTypes.ELEMENT
   parentNode: TestElement | null
   tag: string
   children: TestNode[]
@@ -27,14 +27,14 @@ export interface TestElement {
 
 export interface TestText {
   id: number
-  type: TestNodeTypes.TEXT
+  type: NodeTypes.TEXT
   parentNode: TestElement | null
   text: string
 }
 
 export interface TestComment {
   id: number
-  type: TestNodeTypes.COMMENT
+  type: NodeTypes.COMMENT
   parentNode: TestElement | null
   text: string
 }
@@ -43,7 +43,7 @@ export type TestNode = TestElement | TestText | TestComment
 
 export interface NodeOp {
   type: NodeOpTypes
-  nodeType?: TestNodeTypes
+  nodeType?: NodeTypes
   tag?: string
   text?: string
   targetNode?: TestNode
@@ -57,11 +57,11 @@ export interface NodeOp {
 let nodeId: number = 0
 let recordedNodeOps: NodeOp[] = []
 
-export function logNodeOp(op: NodeOp): void {
+export function logNodeOp(op: NodeOp) {
   recordedNodeOps.push(op)
 }
 
-export function resetOps(): void {
+export function resetOps() {
   recordedNodeOps = []
 }
 
@@ -74,18 +74,18 @@ export function dumpOps(): NodeOp[] {
 function createElement(tag: string): TestElement {
   const node: TestElement = {
     id: nodeId++,
-    type: TestNodeTypes.ELEMENT,
+    type: NodeTypes.ELEMENT,
     tag,
     children: [],
     props: {},
     parentNode: null,
-    eventListeners: null,
+    eventListeners: null
   }
   logNodeOp({
     type: NodeOpTypes.CREATE,
-    nodeType: TestNodeTypes.ELEMENT,
+    nodeType: NodeTypes.ELEMENT,
     targetNode: node,
-    tag,
+    tag
   })
   // avoid test nodes from being observed
   markRaw(node)
@@ -95,15 +95,15 @@ function createElement(tag: string): TestElement {
 function createText(text: string): TestText {
   const node: TestText = {
     id: nodeId++,
-    type: TestNodeTypes.TEXT,
+    type: NodeTypes.TEXT,
     text,
-    parentNode: null,
+    parentNode: null
   }
   logNodeOp({
     type: NodeOpTypes.CREATE,
-    nodeType: TestNodeTypes.TEXT,
+    nodeType: NodeTypes.TEXT,
     targetNode: node,
-    text,
+    text
   })
   // avoid test nodes from being observed
   markRaw(node)
@@ -113,35 +113,31 @@ function createText(text: string): TestText {
 function createComment(text: string): TestComment {
   const node: TestComment = {
     id: nodeId++,
-    type: TestNodeTypes.COMMENT,
+    type: NodeTypes.COMMENT,
     text,
-    parentNode: null,
+    parentNode: null
   }
   logNodeOp({
     type: NodeOpTypes.CREATE,
-    nodeType: TestNodeTypes.COMMENT,
+    nodeType: NodeTypes.COMMENT,
     targetNode: node,
-    text,
+    text
   })
   // avoid test nodes from being observed
   markRaw(node)
   return node
 }
 
-function setText(node: TestText, text: string): void {
+function setText(node: TestText, text: string) {
   logNodeOp({
     type: NodeOpTypes.SET_TEXT,
     targetNode: node,
-    text,
+    text
   })
   node.text = text
 }
 
-function insert(
-  child: TestNode,
-  parent: TestElement,
-  ref?: TestNode | null,
-): void {
+function insert(child: TestNode, parent: TestElement, ref?: TestNode | null) {
   let refIndex
   if (ref) {
     refIndex = parent.children.indexOf(ref)
@@ -155,7 +151,7 @@ function insert(
     type: NodeOpTypes.INSERT,
     targetNode: child,
     parentNode: parent,
-    refNode: ref,
+    refNode: ref
   })
   // remove the node first, but don't log it as a REMOVE op
   remove(child, false)
@@ -170,14 +166,14 @@ function insert(
   }
 }
 
-function remove(child: TestNode, logOp = true): void {
+function remove(child: TestNode, logOp = true) {
   const parent = child.parentNode
   if (parent) {
     if (logOp) {
       logNodeOp({
         type: NodeOpTypes.REMOVE,
         targetNode: child,
-        parentNode: parent,
+        parentNode: parent
       })
     }
     const i = parent.children.indexOf(child)
@@ -192,11 +188,11 @@ function remove(child: TestNode, logOp = true): void {
   }
 }
 
-function setElementText(el: TestElement, text: string): void {
+function setElementText(el: TestElement, text: string) {
   logNodeOp({
     type: NodeOpTypes.SET_ELEMENT_TEXT,
     targetNode: el,
-    text,
+    text
   })
   el.children.forEach(c => {
     c.parentNode = null
@@ -207,10 +203,10 @@ function setElementText(el: TestElement, text: string): void {
     el.children = [
       {
         id: nodeId++,
-        type: TestNodeTypes.TEXT,
+        type: NodeTypes.TEXT,
         text,
-        parentNode: el,
-      },
+        parentNode: el
+      }
     ]
   }
 }
@@ -232,23 +228,11 @@ function querySelector(): never {
   throw new Error('querySelector not supported in test renderer.')
 }
 
-function setScopeId(el: TestElement, id: string): void {
+function setScopeId(el: TestElement, id: string) {
   el.props[id] = ''
 }
 
-export const nodeOps: {
-  insert: typeof insert
-  remove: typeof remove
-  createElement: typeof createElement
-  createText: typeof createText
-  createComment: typeof createComment
-  setText: typeof setText
-  setElementText: typeof setElementText
-  parentNode: typeof parentNode
-  nextSibling: typeof nextSibling
-  querySelector: typeof querySelector
-  setScopeId: typeof setScopeId
-} = {
+export const nodeOps = {
   insert,
   remove,
   createElement,
@@ -259,5 +243,5 @@ export const nodeOps: {
   parentNode,
   nextSibling,
   querySelector,
-  setScopeId,
+  setScopeId
 }

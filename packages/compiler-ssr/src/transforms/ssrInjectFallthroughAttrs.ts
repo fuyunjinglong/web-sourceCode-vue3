@@ -1,13 +1,14 @@
 import {
-  ElementTypes,
-  type NodeTransform,
+  NodeTransform,
   NodeTypes,
-  type ParentNode,
-  type RootNode,
-  type TemplateChildNode,
-  createSimpleExpression,
-  findDir,
+  ElementTypes,
   locStub,
+  createSimpleExpression,
+  RootNode,
+  TemplateChildNode,
+  ParentNode,
+  findDir,
+  isBuiltInType
 } from '@vue/compiler-dom'
 
 const filterChild = (node: ParentNode) =>
@@ -27,10 +28,8 @@ export const ssrInjectFallthroughAttrs: NodeTransform = (node, context) => {
   if (
     node.type === NodeTypes.ELEMENT &&
     node.tagType === ElementTypes.COMPONENT &&
-    (node.tag === 'transition' ||
-      node.tag === 'Transition' ||
-      node.tag === 'KeepAlive' ||
-      node.tag === 'keep-alive')
+    (isBuiltInType(node.tag, 'Transition') ||
+      isBuiltInType(node.tag, 'KeepAlive'))
   ) {
     const rootChildren = filterChild(context.root)
     if (rootChildren.length === 1 && rootChildren[0] === node) {
@@ -85,7 +84,7 @@ function injectFallthroughAttrs(node: RootNode | TemplateChildNode) {
       arg: undefined,
       exp: createSimpleExpression(`_attrs`, false),
       modifiers: [],
-      loc: locStub,
+      loc: locStub
     })
   }
 }

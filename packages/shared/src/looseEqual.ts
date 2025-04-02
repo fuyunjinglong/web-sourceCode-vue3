@@ -1,4 +1,4 @@
-import { isArray, isDate, isObject, isSymbol } from './general'
+import { isArray, isDate, isObject, isSymbol } from './'
 
 function looseCompareArrays(a: any[], b: any[]) {
   if (a.length !== b.length) return false
@@ -29,6 +29,7 @@ export function looseEqual(a: any, b: any): boolean {
   aValidType = isObject(a)
   bValidType = isObject(b)
   if (aValidType || bValidType) {
+    /* istanbul ignore if: this if will probably never be called */
     if (!aValidType || !bValidType) {
       return false
     }

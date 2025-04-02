@@ -1,4 +1,4 @@
-import type { Slot } from '../../src/componentSlots'
+import { Slot } from '../../src/componentSlots'
 import { createSlots } from '../../src/helpers/createSlots'
 
 describe('createSlot', () => {
@@ -22,22 +22,14 @@ describe('createSlot', () => {
 
     const actual = createSlots(record, dynamicSlot)
     const ret = actual.descriptor()
-    // @ts-expect-error
+    // @ts-ignore
     expect(ret.key).toBe('1')
-  })
-
-  it('should check nullability', () => {
-    const slot = (() => {}) as Slot
-    const dynamicSlot = [{ name: 'descriptor', fn: slot, key: '1' }]
-
-    const actual = createSlots(record, dynamicSlot)
-    expect(actual).toHaveProperty('descriptor')
   })
 
   it('should add all slots to the record', () => {
     const dynamicSlot = [
       { name: 'descriptor', fn: slot },
-      { name: 'descriptor2', fn: slot },
+      { name: 'descriptor2', fn: slot }
     ]
 
     const actual = createSlots(record, dynamicSlot)
@@ -48,7 +40,7 @@ describe('createSlot', () => {
   it('should add slot to the record when given slot is an array', () => {
     const dynamicSlot = [
       { name: 'descriptor', fn: slot },
-      [{ name: 'descriptor2', fn: slot }],
+      [{ name: 'descriptor2', fn: slot }]
     ]
 
     const actual = createSlots(record, dynamicSlot)
@@ -61,8 +53,8 @@ describe('createSlot', () => {
       { name: 'descriptor', fn: slot },
       [
         { name: 'descriptor2', fn: slot },
-        { name: 'descriptor3', fn: slot },
-      ],
+        { name: 'descriptor3', fn: slot }
+      ]
     ]
 
     const actual = createSlots(record, dynamicSlot)
@@ -70,7 +62,7 @@ describe('createSlot', () => {
     expect(actual).toEqual({
       descriptor: slot,
       descriptor2: slot,
-      descriptor3: slot,
+      descriptor3: slot
     })
   })
 })

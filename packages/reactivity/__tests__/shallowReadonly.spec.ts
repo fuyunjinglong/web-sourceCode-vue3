@@ -12,7 +12,7 @@ describe('reactivity/shallowReadonly', () => {
     props.n = 2
     expect(props.n).toBe(1)
     expect(
-      `Set operation on key "n" failed: target is readonly.`,
+      `Set operation on key "n" failed: target is readonly.`
     ).toHaveBeenWarned()
   })
 
@@ -23,7 +23,7 @@ describe('reactivity/shallowReadonly', () => {
     props.n.foo = 2
     expect(props.n.foo).toBe(2)
     expect(
-      `Set operation on key "foo" failed: target is readonly.`,
+      `Set operation on key "foo" failed: target is readonly.`
     ).not.toHaveBeenWarned()
   })
 
@@ -50,7 +50,7 @@ describe('reactivity/shallowReadonly', () => {
 
         sroMap.set(key, {} as any)
         expect(
-          `Set operation on key "[object Object]" failed: target is readonly.`,
+          `Set operation on key "[object Object]" failed: target is readonly.`
         ).toHaveBeenWarned()
       })
 
@@ -64,7 +64,7 @@ describe('reactivity/shallowReadonly', () => {
 
         sroMap.get(key)!.foo = 2
         expect(
-          `Set operation on key "foo" failed: target is readonly.`,
+          `Set operation on key "foo" failed: target is readonly.`
         ).not.toHaveBeenWarned()
       })
     })
@@ -84,7 +84,7 @@ describe('reactivity/shallowReadonly', () => {
 
       values1[0].foo = 2
       expect(
-        `Set operation on key "foo" failed: target is readonly.`,
+        `Set operation on key "foo" failed: target is readonly.`
       ).not.toHaveBeenWarned()
 
       expect(isReadonly(values2[0][1])).toBe(false)
@@ -93,7 +93,7 @@ describe('reactivity/shallowReadonly', () => {
 
       values2[0][1].foo = 2
       expect(
-        `Set operation on key "foo" failed: target is readonly.`,
+        `Set operation on key "foo" failed: target is readonly.`
       ).not.toHaveBeenWarned()
     })
 
@@ -109,15 +109,9 @@ describe('reactivity/shallowReadonly', () => {
 
         val.foo = 2
         expect(
-          `Set operation on key "foo" failed: target is readonly.`,
+          `Set operation on key "foo" failed: target is readonly.`
         ).not.toHaveBeenWarned()
       })
-    })
-
-    test('should return undefined from Map.clear() call', () => {
-      const sroMap = shallowReadonly(new Map())
-      expect(sroMap.clear()).toBeUndefined()
-      expect(`Clear operation failed: target is readonly.`).toHaveBeenWarned()
     })
   })
 
@@ -133,7 +127,7 @@ describe('reactivity/shallowReadonly', () => {
 
         sroSet.add({} as any)
         expect(
-          `Add operation on key "[object Object]" failed: target is readonly.`,
+          `Add operation on key "[object Object]" failed: target is readonly.`
         ).toHaveBeenWarned()
       })
     })
@@ -151,12 +145,12 @@ describe('reactivity/shallowReadonly', () => {
 
       sroSet.add({} as any)
       expect(
-        `Add operation on key "[object Object]" failed: target is readonly.`,
+        `Add operation on key "[object Object]" failed: target is readonly.`
       ).toHaveBeenWarned()
 
       values[0].foo = 2
       expect(
-        `Set operation on key "foo" failed: target is readonly.`,
+        `Set operation on key "foo" failed: target is readonly.`
       ).not.toHaveBeenWarned()
     })
 
@@ -174,7 +168,7 @@ describe('reactivity/shallowReadonly', () => {
 
       values1[0].foo = 2
       expect(
-        `Set operation on key "foo" failed: target is readonly.`,
+        `Set operation on key "foo" failed: target is readonly.`
       ).not.toHaveBeenWarned()
 
       expect(isReadonly(values2[0][1])).toBe(false)
@@ -183,7 +177,7 @@ describe('reactivity/shallowReadonly', () => {
 
       values2[0][1].foo = 2
       expect(
-        `Set operation on key "foo" failed: target is readonly.`,
+        `Set operation on key "foo" failed: target is readonly.`
       ).not.toHaveBeenWarned()
     })
 
@@ -199,15 +193,9 @@ describe('reactivity/shallowReadonly', () => {
 
         val.foo = 2
         expect(
-          `Set operation on key "foo" failed: target is readonly.`,
+          `Set operation on key "foo" failed: target is readonly.`
         ).not.toHaveBeenWarned()
       })
-    })
-
-    test('should return undefined from Set.clear() call', () => {
-      const sroSet = shallowReadonly(new Set())
-      expect(sroSet.clear()).toBeUndefined()
-      expect(`Clear operation failed: target is readonly.`).toHaveBeenWarned()
     })
   })
 })

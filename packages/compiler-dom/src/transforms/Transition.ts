@@ -1,12 +1,12 @@
 import {
-  type ComponentNode,
-  ElementTypes,
-  type IfBranchNode,
-  type NodeTransform,
+  NodeTransform,
   NodeTypes,
+  ElementTypes,
+  ComponentNode,
+  IfBranchNode
 } from '@vue/compiler-core'
 import { TRANSITION } from '../runtimeHelpers'
-import { DOMErrorCodes, createDOMCompilerError } from '../errors'
+import { createDOMCompilerError, DOMErrorCodes } from '../errors'
 
 export const transformTransition: NodeTransform = (node, context) => {
   if (
@@ -28,9 +28,9 @@ export const transformTransition: NodeTransform = (node, context) => {
               {
                 start: node.children[0].loc.start,
                 end: node.children[node.children.length - 1].loc.end,
-                source: '',
-              },
-            ),
+                source: ''
+              }
+            )
           )
         }
 
@@ -43,9 +43,8 @@ export const transformTransition: NodeTransform = (node, context) => {
               node.props.push({
                 type: NodeTypes.ATTRIBUTE,
                 name: 'persisted',
-                nameLoc: node.loc,
                 value: undefined,
-                loc: node.loc,
+                loc: node.loc
               })
             }
           }
@@ -60,7 +59,7 @@ function hasMultipleChildren(node: ComponentNode | IfBranchNode): boolean {
   const children = (node.children = node.children.filter(
     c =>
       c.type !== NodeTypes.COMMENT &&
-      !(c.type === NodeTypes.TEXT && !c.content.trim()),
+      !(c.type === NodeTypes.TEXT && !c.content.trim())
   ))
   const child = children[0]
   return (

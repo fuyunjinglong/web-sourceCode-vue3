@@ -1,17 +1,14 @@
 import { isArray } from '@vue/shared'
 import { inject } from '../apiInject'
-import type { ComponentInternalInstance, Data } from '../component'
-import {
-  type ComponentOptions,
-  resolveMergedOptions,
-} from '../componentOptions'
+import { ComponentInternalInstance, Data } from '../component'
+import { ComponentOptions, resolveMergedOptions } from '../componentOptions'
 import { DeprecationTypes, warnDeprecation } from './compatConfig'
 
 export function createPropsDefaultThis(
   instance: ComponentInternalInstance,
   rawProps: Data,
-  propKey: string,
-): object {
+  propKey: string
+) {
   return new Proxy(
     {},
     {
@@ -37,7 +34,7 @@ export function createPropsDefaultThis(
             return inject(key)
           }
         }
-      },
-    },
+      }
+    }
   )
 }

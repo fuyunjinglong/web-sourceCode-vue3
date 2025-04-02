@@ -1,22 +1,21 @@
-import type { SuspenseBoundary } from './components/Suspense'
-import type { VNode, VNodeNormalizedRef, VNodeNormalizedRefAtom } from './vnode'
+import { SuspenseBoundary } from './components/Suspense'
+import { VNode, VNodeNormalizedRef, VNodeNormalizedRefAtom } from './vnode'
 import {
   EMPTY_OBJ,
-  ShapeFlags,
   hasOwn,
   isArray,
   isFunction,
   isString,
   remove,
+  ShapeFlags
 } from '@vue/shared'
 import { isAsyncWrapper } from './apiAsyncComponent'
+import { getExposeProxy } from './component'
 import { warn } from './warning'
-import { isRef, toRaw } from '@vue/reactivity'
-import { ErrorCodes, callWithErrorHandling } from './errorHandling'
-import type { SchedulerJob } from './scheduler'
+import { isRef } from '@vue/reactivity'
+import { callWithErrorHandling, ErrorCodes } from './errorHandling'
+import { SchedulerJob } from './scheduler'
 import { queuePostRenderEffect } from './renderer'
-import { type ComponentOptions, getComponentPublicInstance } from './component'
-import { knownTemplateRefs } from './helpers/useTemplateRef'
 
 /**
  * Function for handling a template ref
@@ -26,8 +25,8 @@ export function setRef(
   oldRawRef: VNodeNormalizedRef | null,
   parentSuspense: SuspenseBoundary | null,
   vnode: VNode,
-  isUnmount = false,
-): void {
+  isUnmount = false
+) {
   if (isArray(rawRef)) {
     rawRef.forEach((r, i) =>
       setRef(
@@ -35,31 +34,21 @@ export function setRef(
         oldRawRef && (isArray(oldRawRef) ? oldRawRef[i] : oldRawRef),
         parentSuspense,
         vnode,
-        isUnmount,
-      ),
+        isUnmount
+      )
     )
     return
   }
 
   if (isAsyncWrapper(vnode) && !isUnmount) {
-    // #4999 if an async component already resolved and cached by KeepAlive,
-    // we need to set the ref to inner component
-    if (
-      vnode.shapeFlag & ShapeFlags.COMPONENT_KEPT_ALIVE &&
-      (vnode.type as ComponentOptions).__asyncResolved &&
-      vnode.component!.subTree.component
-    ) {
-      setRef(rawRef, oldRawRef, parentSuspense, vnode.component!.subTree)
-    }
-
-    // otherwise, nothing needs to be done because the template ref
-    // is forwarded to inner component
+    // when mounting async components, nothing needs to be done,
+    // because the template ref is forwarded to inner component
     return
   }
 
   const refValue =
     vnode.shapeFlag & ShapeFlags.STATEFUL_COMPONENT
-      ? getComponentPublicInstance(vnode.component!)
+      ? getExposeProxy(vnode.component!) || vnode.component!.proxy
       : vnode.el
   const value = isUnmount ? null : refValue
 
@@ -67,38 +56,19 @@ export function setRef(
   if (__DEV__ && !owner) {
     warn(
       `Missing ref owner context. ref cannot be used on hoisted vnodes. ` +
-        `A vnode with ref must be created inside the render function.`,
+        `A vnode with ref must be created inside the render function.`
     )
     return
   }
   const oldRef = oldRawRef && (oldRawRef as VNodeNormalizedRefAtom).r
   const refs = owner.refs === EMPTY_OBJ ? (owner.refs = {}) : owner.refs
   const setupState = owner.setupState
-  const rawSetupState = toRaw(setupState)
-  const canSetSetupRef =
-    setupState === EMPTY_OBJ
-      ? () => false
-      : (key: string) => {
-          if (__DEV__) {
-            if (hasOwn(rawSetupState, key) && !isRef(rawSetupState[key])) {
-              warn(
-                `Template ref "${key}" used on a non-ref value. ` +
-                  `It will not work in the production build.`,
-              )
-            }
-
-            if (knownTemplateRefs.has(rawSetupState[key] as any)) {
-              return false
-            }
-          }
-          return hasOwn(rawSetupState, key)
-        }
 
   // dynamic ref changed. unset old ref
   if (oldRef != null && oldRef !== ref) {
     if (isString(oldRef)) {
       refs[oldRef] = null
-      if (canSetSetupRef(oldRef)) {
+      if (hasOwn(setupState, oldRef)) {
         setupState[oldRef] = null
       }
     } else if (isRef(oldRef)) {
@@ -111,22 +81,17 @@ export function setRef(
   } else {
     const _isString = isString(ref)
     const _isRef = isRef(ref)
-
     if (_isString || _isRef) {
       const doSet = () => {
         if (rawRef.f) {
-          const existing = _isString
-            ? canSetSetupRef(ref)
-              ? setupState[ref]
-              : refs[ref]
-            : ref.value
+          const existing = _isString ? refs[ref] : ref.value
           if (isUnmount) {
             isArray(existing) && remove(existing, refValue)
           } else {
             if (!isArray(existing)) {
               if (_isString) {
                 refs[ref] = [refValue]
-                if (canSetSetupRef(ref)) {
+                if (hasOwn(setupState, ref)) {
                   setupState[ref] = refs[ref]
                 }
               } else {
@@ -139,7 +104,7 @@ export function setRef(
           }
         } else if (_isString) {
           refs[ref] = value
-          if (canSetSetupRef(ref)) {
+          if (hasOwn(setupState, ref)) {
             setupState[ref] = value
           }
         } else if (_isRef) {
